@@ -12,6 +12,10 @@ const Logger = require('./utils/Logger');
 const Database = require('./database/Database');
 const ProxmoxIntegration = require('./integrations/ProxmoxIntegration');
 const CloudflareIntegration = require('./integrations/CloudflareIntegration');
+const RedisCache = require('./cache/RedisCache');
+const MetricsCollector = require('./monitoring/MetricsCollector');
+const { CircuitBreakerManager } = require('./utils/CircuitBreaker');
+const WAF = require('./security/WAF');
 
 class RAWRProxyServer {
     constructor() {
@@ -19,11 +23,25 @@ class RAWRProxyServer {
         this.adminApp = express();
         this.logger = new Logger();
         this.db = new Database();
+        
+        // Initialize new features
+        this.redisCache = new RedisCache();
+        this.metrics = new MetricsCollector();
+        this.circuitBreakerManager = new CircuitBreakerManager();
+        this.waf = new WAF({
+            enabled: process.env.WAF_ENABLED === 'true',
+            logOnly: process.env.WAF_LOG_ONLY === 'true'
+        });
+        
         this.authManager = new AuthManager(this.db);
         this.proxyManager = new ProxyManager(this.logger, this.authManager, this.db);
         this.proxmoxIntegration = new ProxmoxIntegration(this.db, this.logger);
         this.cloudflareIntegration = new CloudflareIntegration(this.db, this.logger);
         this.adminPanel = new AdminPanel(this.adminApp, this.db, this.logger, this.proxmoxIntegration, this.cloudflareIntegration, this.proxyManager);
+        
+        // Share Redis cache with proxy manager if connected
+        this.proxyManager.redisCache = this.redisCache;
+        this.proxyManager.circuitBreakerManager = this.circuitBreakerManager;
         
         this.setupMiddleware();
         this.setupRoutes();
@@ -46,6 +64,23 @@ class RAWRProxyServer {
         }));
         this.app.use(cors());
         this.app.use(compression());
+        
+        // Add metrics middleware
+        this.app.use(this.metrics.middleware());
+        
+        // Add WAF middleware
+        this.app.use(async (req, res, next) => {
+            const wafResult = await this.waf.inspect(req, res);
+            if (!wafResult.allowed) {
+                this.logger.warn(`WAF blocked request from ${req.ip} to ${req.path}`);
+                return res.status(403).json({
+                    error: 'Forbidden',
+                    message: 'Request blocked by security policy',
+                    violations: process.env.WAF_VERBOSE === 'true' ? wafResult.violations : undefined
+                });
+            }
+            next();
+        });
         
         // Apply body parser only to non-proxy routes
         // Proxy routes need raw body to forward properly
@@ -100,8 +135,35 @@ class RAWRProxyServer {
                 mode: {
                     forward: process.env.ENABLE_FORWARD_PROXY === 'true',
                     reverse: process.env.ENABLE_REVERSE_PROXY === 'true'
+                },
+                features: {
+                    redis: this.redisCache.connected,
+                    waf: this.waf.enabled,
+                    metrics: true,
+                    circuitBreaker: true
                 }
             });
+        });
+        
+        // Prometheus metrics endpoint
+        this.app.get('/metrics', async (req, res) => {
+            res.set('Content-Type', this.metrics.getContentType());
+            res.end(await this.metrics.getMetrics());
+        });
+        
+        // WAF stats endpoint
+        this.app.get('/api/waf/stats', (req, res) => {
+            res.json(this.waf.getStats());
+        });
+        
+        // Circuit breaker stats endpoint
+        this.app.get('/api/circuit-breakers', (req, res) => {
+            res.json(this.circuitBreakerManager.getStats());
+        });
+        
+        // Redis cache stats endpoint
+        this.app.get('/api/cache/stats', (req, res) => {
+            res.json(this.redisCache.getStats());
         });
 
         if (process.env.AUTH_ENABLED === 'true') {
@@ -213,6 +275,11 @@ class RAWRProxyServer {
         require('events').EventEmitter.defaultMaxListeners = 100;
         
         await this.db.initialize();
+        
+        // Try to connect to Redis (optional)
+        if (process.env.REDIS_ENABLED === 'true') {
+            await this.redisCache.connect();
+        }
         
         // Initialize backend pools after database is ready
         await this.proxyManager.initializeBackendPools();
