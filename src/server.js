@@ -16,6 +16,15 @@ const RedisCache = require('./cache/RedisCache');
 const MetricsCollector = require('./monitoring/MetricsCollector');
 const { CircuitBreakerManager } = require('./utils/CircuitBreaker');
 const WAF = require('./security/WAF');
+const RateLimiter = require('./middleware/RateLimiter');
+const TrafficSplitter = require('./routing/TrafficSplitter');
+const GrpcProxy = require('./proxy/GrpcProxy');
+const OAuth2Manager = require('./auth/OAuth2Manager');
+const GraphQLProxy = require('./proxy/GraphQLProxy');
+const APIGateway = require('./gateway/APIGateway');
+const AdvancedSecurity = require('./security/AdvancedSecurity');
+const KubernetesIntegration = require('./integrations/KubernetesIntegration');
+const OpenTelemetryIntegration = require('./observability/OpenTelemetryIntegration');
 
 class RAWRProxyServer {
     constructor() {
@@ -31,6 +40,23 @@ class RAWRProxyServer {
         this.waf = new WAF({
             enabled: process.env.WAF_ENABLED === 'true',
             logOnly: process.env.WAF_LOG_ONLY === 'true'
+        });
+        
+        // Initialize additional enterprise features
+        this.rateLimiter = new RateLimiter({ redisCache: this.redisCache });
+        this.trafficSplitter = new TrafficSplitter({ database: this.db });
+        this.grpcProxy = new GrpcProxy();
+        this.oauth2Manager = new OAuth2Manager({ database: this.db, redisCache: this.redisCache });
+        this.graphQLProxy = new GraphQLProxy();
+        this.apiGateway = new APIGateway();
+        this.advancedSecurity = new AdvancedSecurity({ 
+            database: this.db, 
+            redisCache: this.redisCache 
+        });
+        this.kubernetesIntegration = new KubernetesIntegration({ database: this.db });
+        this.openTelemetry = new OpenTelemetryIntegration({
+            serviceName: 'rawrproxy',
+            environment: process.env.NODE_ENV || 'production'
         });
         
         this.authManager = new AuthManager(this.db);
@@ -65,8 +91,17 @@ class RAWRProxyServer {
         this.app.use(cors());
         this.app.use(compression());
         
+        // Add OpenTelemetry middleware (should be first)
+        this.app.use(this.openTelemetry.middleware());
+        
         // Add metrics middleware
         this.app.use(this.metrics.middleware());
+        
+        // Add advanced security middleware
+        this.app.use(this.advancedSecurity.middleware());
+        
+        // Add distributed rate limiting
+        this.app.use(this.rateLimiter.middleware());
         
         // Add WAF middleware
         this.app.use(async (req, res, next) => {
@@ -140,7 +175,16 @@ class RAWRProxyServer {
                     redis: this.redisCache.connected,
                     waf: this.waf.enabled,
                     metrics: true,
-                    circuitBreaker: true
+                    circuitBreaker: true,
+                    rateLimiter: true,
+                    trafficSplitter: this.trafficSplitter.getActiveExperiments().length > 0,
+                    grpc: true,
+                    oauth2: this.oauth2Manager.providers.size > 0,
+                    graphql: this.graphQLProxy.services.size > 0,
+                    apiGateway: this.apiGateway.routes.size > 0,
+                    advancedSecurity: true,
+                    kubernetes: this.kubernetesIntegration.services.size > 0,
+                    openTelemetry: true
                 }
             });
         });
@@ -165,6 +209,63 @@ class RAWRProxyServer {
         this.app.get('/api/cache/stats', (req, res) => {
             res.json(this.redisCache.getStats());
         });
+        
+        // Enterprise feature endpoints
+        this.app.get('/api/rate-limiter/stats', (req, res) => {
+            res.json(this.rateLimiter.getStats());
+        });
+        
+        this.app.get('/api/traffic-splitter/experiments', (req, res) => {
+            res.json(this.trafficSplitter.getActiveExperiments());
+        });
+        
+        this.app.get('/api/grpc/stats', (req, res) => {
+            res.json(this.grpcProxy.getStats());
+        });
+        
+        this.app.get('/api/oauth2/providers', (req, res) => {
+            res.json(Array.from(this.oauth2Manager.providers.keys()));
+        });
+        
+        this.app.get('/api/graphql/stats', (req, res) => {
+            res.json(this.graphQLProxy.getStats());
+        });
+        
+        this.app.get('/api/gateway/stats', (req, res) => {
+            res.json(this.apiGateway.getStats());
+        });
+        
+        this.app.get('/api/security/stats', (req, res) => {
+            res.json(this.advancedSecurity.getStats());
+        });
+        
+        this.app.get('/api/kubernetes/services', (req, res) => {
+            res.json(this.kubernetesIntegration.getServiceDiscovery());
+        });
+        
+        this.app.get('/api/telemetry/stats', (req, res) => {
+            res.json(this.openTelemetry.getStats());
+        });
+        
+        // OAuth2 endpoints
+        this.app.get('/auth/oauth2/:provider', (req, res) => {
+            this.oauth2Manager.initiateAuth(req.params.provider, req, res);
+        });
+        
+        this.app.get('/auth/oauth2/:provider/callback', (req, res) => {
+            this.oauth2Manager.handleCallback(req.params.provider, req, res);
+        });
+        
+        // GraphQL endpoint
+        if (process.env.GRAPHQL_ENABLED === 'true') {
+            this.graphQLProxy.createApolloServer(this.app);
+        }
+        
+        // API Gateway routes
+        this.app.use('/api/gateway', this.apiGateway.processRequest.bind(this.apiGateway));
+        
+        // gRPC proxy endpoint
+        this.app.use('/grpc', this.grpcProxy.middleware());
 
         if (process.env.AUTH_ENABLED === 'true') {
             this.app.post('/auth/login', this.authManager.login.bind(this.authManager));
@@ -314,6 +415,37 @@ class RAWRProxyServer {
             };
             await this.cloudflareIntegration.initialize(config);
         }
+        
+        // Initialize all enterprise features
+        this.logger.info('Initializing enterprise features...');
+        
+        // Initialize OpenTelemetry observability
+        if (process.env.OPENTELEMETRY_ENABLED === 'true') {
+            await this.openTelemetry.initialize();
+        }
+        
+        // Initialize advanced security features
+        await this.advancedSecurity.initialize();
+        
+        // Initialize OAuth2 providers
+        if (process.env.OAUTH2_ENABLED === 'true') {
+            await this.oauth2Manager.initialize();
+        }
+        
+        // Initialize Kubernetes integration
+        if (process.env.KUBERNETES_ENABLED === 'true') {
+            await this.kubernetesIntegration.initialize();
+        }
+        
+        // Initialize gRPC proxy
+        if (process.env.GRPC_ENABLED === 'true') {
+            await this.grpcProxy.initialize();
+        }
+        
+        // Initialize traffic splitting experiments
+        await this.trafficSplitter.loadExperiments();
+        
+        this.logger.info('Enterprise features initialized');
         
         const httpPort = process.env.PORT || 80;
         const httpsPort = process.env.HTTPS_PORT || 443;
@@ -514,9 +646,58 @@ class RAWRProxyServer {
         // This method is called later but WebSocket is already set up
         this.logger.info('WebSocket support enabled for proxy');
     }
+    
+    async shutdown() {
+        this.logger.info('Shutting down server...');
+        
+        // Shutdown OpenTelemetry
+        if (this.openTelemetry) {
+            await this.openTelemetry.shutdown();
+        }
+        
+        // Shutdown Kubernetes watchers
+        if (this.kubernetesIntegration) {
+            await this.kubernetesIntegration.shutdown();
+        }
+        
+        // Close Redis connections
+        if (this.redisCache && this.redisCache.connected) {
+            await this.redisCache.disconnect();
+        }
+        
+        // Close database
+        if (this.db) {
+            await this.db.close();
+        }
+        
+        // Close servers
+        if (this.httpServer) {
+            this.httpServer.close();
+        }
+        if (this.httpsServer) {
+            this.httpsServer.close();
+        }
+        if (this.adminServer) {
+            this.adminServer.close();
+        }
+        
+        this.logger.info('Server shutdown complete');
+    }
 }
 
 const server = new RAWRProxyServer();
+
+// Handle graceful shutdown
+process.on('SIGTERM', async () => {
+    await server.shutdown();
+    process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+    await server.shutdown();
+    process.exit(0);
+});
+
 server.start().catch(err => {
     console.error('Failed to start server:', err);
     process.exit(1);
