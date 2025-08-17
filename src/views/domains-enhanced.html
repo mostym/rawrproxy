@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Domain Management - RAWRProxy</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #f59e0b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --dark: #1f2937;
+            --darker: #111827;
+            --light: #f9fafb;
+            --lighter: #ffffff;
+            --text: #374151;
+            --text-light: #6b7280;
+            --border: #e5e7eb;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--text);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            text-decoration: none;
+        }
+        
+        .logo-icon {
+            font-size: 2.5rem;
+        }
+        
+        .logo-text {
+            font-size: 1.875rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .nav {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .nav-btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--lighter);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .nav-btn:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .nav-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .nav-btn.cloudflare.active {
+            background: linear-gradient(135deg, #f48120 0%, #faae40 100%);
+            color: white;
+            border: none;
+        }
+        
+        /* Page specific styles */
+        .page-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .btn-success {
+            background: var(--success);
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .domains-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .domain-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
+        
+        .domain-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .domain-header {
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .domain-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .domain-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+        
+        .domain-body {
+            padding: 1.5rem;
+        }
+        
+        .backend-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .section-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-light);
+            margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .backend-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .backend-item {
+            padding: 1rem;
+            background: var(--light);
+            border-radius: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .backend-item:hover {
+            background: var(--lighter);
+            box-shadow: var(--shadow);
+        }
+        
+        .backend-info {
+            flex: 1;
+        }
+        
+        .backend-name {
+            font-weight: 500;
+            color: var(--dark);
+            margin-bottom: 0.25rem;
+        }
+        
+        .backend-url {
+            font-size: 0.875rem;
+            color: var(--text-light);
+            font-family: monospace;
+        }
+        
+        .backend-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-dot.healthy {
+            background: var(--success);
+        }
+        
+        .status-dot.unhealthy {
+            background: var(--danger);
+        }
+        
+        .backend-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .backend-badge.internal {
+            background: var(--info);
+            color: white;
+        }
+        
+        .backend-badge.external {
+            background: var(--warning);
+            color: white;
+        }
+        
+        .backend-badge.proxmox {
+            background: linear-gradient(135deg, #e85d04, #ff6700);
+            color: white;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .domain-actions {
+            padding: 1rem 1.5rem;
+            background: var(--light);
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .action-btn {
+            padding: 0.5rem 1rem;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .action-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .add-btn {
+            padding: 0.25rem 0.5rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .add-btn:hover {
+            background: var(--primary-dark);
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .modal-header {
+            margin-bottom: 1.5rem;
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-input, .form-select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        .form-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .remove-btn {
+            padding: 0.25rem 0.5rem;
+            background: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            cursor: pointer;
+            margin-left: 0.5rem;
+        }
+        
+        /* Alert/Notification styles */
+        .alert-container {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-width: 400px;
+        }
+        
+        .alert {
+            padding: 1rem 1.5rem;
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .alert.success {
+            border-left: 4px solid var(--success);
+        }
+        
+        .alert.error {
+            border-left: 4px solid var(--danger);
+        }
+        
+        .alert.info {
+            border-left: 4px solid var(--info);
+        }
+        
+        .alert.warning {
+            border-left: 4px solid var(--warning);
+        }
+        
+        .alert-icon {
+            font-size: 1.25rem;
+        }
+        
+        .alert-message {
+            flex: 1;
+            color: var(--text);
+        }
+        
+        .alert-close {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            cursor: pointer;
+            color: var(--text-light);
+            padding: 0;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        /* Confirm modal styles */
+        .confirm-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 1500;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .confirm-modal.active {
+            display: flex;
+        }
+        
+        .confirm-content {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .confirm-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+        }
+        
+        .confirm-message {
+            color: var(--text);
+            margin-bottom: 1.5rem;
+        }
+        
+        .confirm-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+        
+        @media (max-width: 768px) {
+            .domains-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav {
+                flex-wrap: wrap;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .alert-container {
+                right: 1rem;
+                left: 1rem;
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Consistent Header -->
+        <div class="header">
+            <a href="/" class="logo">
+                <span class="logo-icon">🦖</span>
+                <span class="logo-text">RAWRProxy</span>
+            </a>
+            <nav class="nav">
+                <a href="/" class="nav-btn">
+                    <span>🏠</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/domains" class="nav-btn active">
+                    <span>🌐</span>
+                    <span>Domains</span>
+                </a>
+                <a href="/websocket" class="nav-btn">
+                    <span>🔌</span>
+                    <span>WebSocket</span>
+                </a>
+                <a href="/proxmox" class="nav-btn">
+                    <span>🖥️</span>
+                    <span>Proxmox</span>
+                </a>
+                <a href="/cloudflare" class="nav-btn cloudflare">
+                    <span>☁️</span>
+                    <span>Cloudflare</span>
+                </a>
+            </nav>
+        </div>
+        
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">Domain & Backend Management</h1>
+            <button class="btn btn-success" onclick="showAddDomainModal()">
+                <span>➕</span>
+                <span>Add Domain</span>
+            </button>
+        </div>
+        
+        <!-- Domains Grid -->
+        <div class="domains-grid" id="domainsGrid">
+            <!-- Domain cards will be dynamically loaded here -->
+        </div>
+    </div>
+    
+    <!-- Add Domain Modal -->
+    <div class="modal" id="addDomainModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Add New Domain</h2>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Domain Name</label>
+                <input type="text" class="form-input" id="newDomainName" placeholder="example.com">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Proxy Type</label>
+                <select class="form-select" id="newDomainType">
+                    <option value="reverse">Reverse Proxy</option>
+                    <option value="forward">Forward Proxy</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" style="background: var(--text-light)" onclick="hideModal('addDomainModal')">Cancel</button>
+                <button class="btn btn-success" onclick="addDomain()">Add Domain</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Alert Container -->
+    <div class="alert-container" id="alertContainer"></div>
+    
+    <!-- Confirm Modal -->
+    <div class="confirm-modal" id="confirmModal">
+        <div class="confirm-content">
+            <div class="confirm-title" id="confirmTitle">Confirm Action</div>
+            <div class="confirm-message" id="confirmMessage">Are you sure?</div>
+            <div class="confirm-buttons">
+                <button class="btn" style="background: var(--text-light)" onclick="closeConfirm(false)">Cancel</button>
+                <button class="btn btn-success" id="confirmButton">Confirm</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add/Edit Backend Modal -->
+    <div class="modal" id="addBackendModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="backendModalTitle">Add Backend Server</h2>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Backend Name</label>
+                <input type="text" class="form-input" id="backendName" placeholder="My Service">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Backend Type</label>
+                    <select class="form-select" id="backendType" onchange="updateBackendForm()">
+                        <option value="internal">Internal (Local Network)</option>
+                        <option value="external">External (Internet)</option>
+                        <option value="proxmox">Proxmox VM/Container</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Protocol</label>
+                    <select class="form-select" id="backendProtocol">
+                        <option value="http">HTTP</option>
+                        <option value="https">HTTPS</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Host/IP Address</label>
+                    <input type="text" class="form-input" id="backendHost" placeholder="192.168.1.100 or example.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Port</label>
+                    <input type="number" class="form-input" id="backendPort" placeholder="80" value="80">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Path Prefix (optional)</label>
+                <input type="text" class="form-input" id="backendPath" placeholder="/api">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Health Check Path</label>
+                <input type="text" class="form-input" id="healthCheckPath" placeholder="/" value="/">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Weight (for load balancing)</label>
+                <input type="number" class="form-input" id="backendWeight" placeholder="1" value="1" min="1" max="100">
+            </div>
+            <div class="form-checkbox">
+                <input type="checkbox" id="backendActive" checked>
+                <label for="backendActive">Active</label>
+            </div>
+            <input type="hidden" id="backendDomainId">
+            <input type="hidden" id="editBackendId">
+            <div class="modal-footer">
+                <button class="btn" style="background: var(--text-light)" onclick="hideModal('addBackendModal')">Cancel</button>
+                <button class="btn btn-success" id="backendSubmitBtn" onclick="saveBackend()">Add Backend</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let domains = [];
+        let backends = [];
+        let confirmCallback = null;
+        
+        // Alert/Notification system
+        function showAlert(message, type = 'info') {
+            const alertContainer = document.getElementById('alertContainer');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert ${type}`;
+            
+            const icons = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+            
+            alertDiv.innerHTML = `
+                <span class="alert-icon">${icons[type] || icons.info}</span>
+                <span class="alert-message">${message}</span>
+                <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+            `;
+            
+            alertContainer.appendChild(alertDiv);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+        
+        // Confirm dialog system
+        function showConfirm(title, message, callback) {
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+            document.getElementById('confirmModal').classList.add('active');
+            
+            confirmCallback = callback;
+            
+            // Set up confirm button
+            const confirmBtn = document.getElementById('confirmButton');
+            confirmBtn.onclick = () => closeConfirm(true);
+        }
+        
+        function closeConfirm(result) {
+            document.getElementById('confirmModal').classList.remove('active');
+            if (confirmCallback) {
+                confirmCallback(result);
+                confirmCallback = null;
+            }
+        }
+        
+        async function loadData() {
+            try {
+                // Load domains
+                const domainsResponse = await fetch('/api/domains');
+                if (domainsResponse.ok) {
+                    domains = await domainsResponse.json();
+                }
+                
+                // Load backends
+                const backendsResponse = await fetch('/api/backends');
+                if (backendsResponse.ok) {
+                    backends = await backendsResponse.json();
+                }
+                
+                // For each domain, load its backends
+                for (const domain of domains) {
+                    try {
+                        const backendResponse = await fetch(`/api/domains/${domain.id}/backends`);
+                        if (backendResponse.ok) {
+                            domain.backends = await backendResponse.json();
+                        } else {
+                            domain.backends = [];
+                        }
+                    } catch (err) {
+                        domain.backends = [];
+                    }
+                }
+                
+                renderDomains();
+            } catch (error) {
+                console.error('Failed to load data:', error);
+                // Use demo data if API fails
+                renderDemoData();
+            }
+        }
+        
+        function renderDemoData() {
+            const demoData = [
+                {
+                    id: 1,
+                    domain: 'rawrinc.com',
+                    backends: [
+                        { name: 'Immich', url: 'http://192.168.1.120:2283', type: 'proxmox', healthy: true, subdomain: 'pix' },
+                        { name: 'OnlyOffice', url: 'http://192.168.1.112:8080', type: 'proxmox', healthy: false, subdomain: 'onlyoffice' },
+                        { name: 'External CDN', url: 'https://cdn.jsdelivr.net', type: 'external', healthy: true, subdomain: 'cdn' }
+                    ]
+                },
+                {
+                    id: 2,
+                    domain: '25bc.com',
+                    backends: [
+                        { name: 'Home Assistant', url: 'http://192.168.1.110:8123', type: 'internal', healthy: true, subdomain: 'ha' }
+                    ]
+                },
+                {
+                    id: 3,
+                    domain: 'namrotsjh.com',
+                    backends: [
+                        { name: 'App Server', url: 'http://192.168.1.105:80', type: 'internal', healthy: true, subdomain: 'app' },
+                        { name: 'External API', url: 'https://api.example.com', type: 'external', healthy: true, subdomain: 'api' }
+                    ]
+                }
+            ];
+            
+            renderDomainsWithData(demoData);
+        }
+        
+        function renderDomains() {
+            if (domains.length === 0) {
+                renderDemoData();
+                return;
+            }
+            renderDomainsWithData(domains);
+        }
+        
+        function renderDomainsWithData(domainData) {
+            const grid = document.getElementById('domainsGrid');
+            grid.innerHTML = domainData.map(domain => `
+                <div class="domain-card">
+                    <div class="domain-header">
+                        <div>
+                            <div class="domain-name">
+                                <span>🌐</span>
+                                <span>${domain.domain}</span>
+                            </div>
+                            <div class="domain-meta">
+                                <span>☁️ Cloudflare</span>
+                                <span>🔒 SSL Active</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="domain-body">
+                        <div class="backend-section">
+                            <div class="section-title">
+                                <span>Backend Servers</span>
+                                <button class="add-btn" onclick="showAddBackendModal(${domain.id}, '${domain.domain}')">
+                                    ➕ Add Backend
+                                </button>
+                            </div>
+                            <div class="backend-list">
+                                ${domain.backends && domain.backends.length > 0 ? domain.backends.map(backend => `
+                                    <div class="backend-item">
+                                        <div class="backend-info">
+                                            <div class="backend-name">
+                                                ${backend.subdomain ? `<strong>${backend.subdomain}</strong>.${domain.domain}` : '(root)'}
+                                                → ${backend.name}
+                                            </div>
+                                            <div class="backend-url">${backend.url}</div>
+                                        </div>
+                                        <div class="backend-status">
+                                            <span class="backend-badge ${backend.type}">
+                                                ${backend.type === 'external' ? '🌍 External' : 
+                                                  backend.type === 'proxmox' ? '🖥️ Proxmox' : 
+                                                  '🏠 Internal'}
+                                            </span>
+                                            <span class="status-dot ${backend.healthy ? 'healthy' : 'unhealthy'}"></span>
+                                            <button class="action-btn" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="editBackend(${backend.id})">✏️</button>
+                                            <button class="remove-btn" onclick="removeBackend(${backend.id})">✕</button>
+                                        </div>
+                                    </div>
+                                `).join('') : '<div style="color: var(--text-light); font-size: 0.875rem;">No backends configured</div>'}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="domain-actions">
+                        <button class="action-btn" onclick="manageDNS('${domain.domain}')">DNS Settings</button>
+                        <button class="action-btn" onclick="configureLoadBalancing(${domain.id})">Load Balancing</button>
+                        <button class="action-btn" onclick="viewStats(${domain.id})">Statistics</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function showAddDomainModal() {
+            document.getElementById('addDomainModal').classList.add('active');
+        }
+        
+        function showAddBackendModal(domainId, domainName) {
+            // Reset form for adding new backend
+            document.getElementById('backendModalTitle').textContent = `Add Backend for ${domainName}`;
+            document.getElementById('backendSubmitBtn').textContent = 'Add Backend';
+            document.getElementById('backendDomainId').value = domainId;
+            document.getElementById('editBackendId').value = '';
+            
+            // Clear form fields
+            document.getElementById('backendName').value = '';
+            document.getElementById('backendType').value = 'internal';
+            document.getElementById('backendProtocol').value = 'http';
+            document.getElementById('backendHost').value = '';
+            document.getElementById('backendPort').value = '80';
+            document.getElementById('backendPath').value = '';
+            document.getElementById('healthCheckPath').value = '/';
+            document.getElementById('backendWeight').value = '1';
+            document.getElementById('backendActive').checked = true;
+            
+            document.getElementById('addBackendModal').classList.add('active');
+        }
+        
+        async function editBackend(backendId) {
+            const backend = backends.find(b => b.id === backendId);
+            if (!backend) {
+                showAlert('Backend not found', 'error');
+                return;
+            }
+            
+            // Parse URL to get protocol, host, port, path
+            const url = new URL(backend.url);
+            const protocol = url.protocol.replace(':', '');
+            const host = url.hostname;
+            const port = url.port || (protocol === 'https' ? '443' : '80');
+            const path = url.pathname === '/' ? '' : url.pathname;
+            
+            // Set form for editing
+            document.getElementById('backendModalTitle').textContent = 'Edit Backend Server';
+            document.getElementById('backendSubmitBtn').textContent = 'Save Changes';
+            document.getElementById('editBackendId').value = backendId;
+            
+            // Fill form with backend data
+            document.getElementById('backendName').value = backend.name || '';
+            document.getElementById('backendType').value = backend.type || 'internal';
+            document.getElementById('backendProtocol').value = protocol;
+            document.getElementById('backendHost').value = host;
+            document.getElementById('backendPort').value = port;
+            document.getElementById('backendPath').value = path;
+            document.getElementById('healthCheckPath').value = backend.health_check_path || '/';
+            document.getElementById('backendWeight').value = backend.weight || '1';
+            document.getElementById('backendActive').checked = backend.active !== 0;
+            
+            document.getElementById('addBackendModal').classList.add('active');
+        }
+        
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+        
+        function updateBackendForm() {
+            const type = document.getElementById('backendType').value;
+            const hostInput = document.getElementById('backendHost');
+            
+            if (type === 'external') {
+                hostInput.placeholder = 'example.com or api.service.com';
+                document.getElementById('backendProtocol').value = 'https';
+                document.getElementById('backendPort').value = '443';
+            } else if (type === 'proxmox') {
+                hostInput.placeholder = 'VM/Container IP (e.g., 192.168.1.100)';
+                document.getElementById('backendProtocol').value = 'http';
+                document.getElementById('backendPort').value = '80';
+            } else {
+                hostInput.placeholder = '192.168.1.100 or hostname.local';
+                document.getElementById('backendProtocol').value = 'http';
+                document.getElementById('backendPort').value = '80';
+            }
+        }
+        
+        async function addDomain() {
+            const name = document.getElementById('newDomainName').value;
+            const type = document.getElementById('newDomainType').value;
+            
+            if (!name) {
+                showAlert('Please enter a domain name', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/domains', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ domain: name, type })
+                });
+                
+                if (response.ok) {
+                    showAlert('Domain added successfully', 'success');
+                    hideModal('addDomainModal');
+                    document.getElementById('newDomainName').value = '';
+                    loadData();
+                } else {
+                    showAlert('Failed to add domain', 'error');
+                }
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function saveBackend() {
+            const editBackendId = document.getElementById('editBackendId').value;
+            const domainId = document.getElementById('backendDomainId').value;
+            const name = document.getElementById('backendName').value;
+            const type = document.getElementById('backendType').value;
+            const protocol = document.getElementById('backendProtocol').value;
+            const host = document.getElementById('backendHost').value;
+            const port = document.getElementById('backendPort').value;
+            const path = document.getElementById('backendPath').value;
+            const healthCheckPath = document.getElementById('healthCheckPath').value;
+            const weight = document.getElementById('backendWeight').value;
+            const active = document.getElementById('backendActive').checked;
+            
+            if (!name || !host || !port) {
+                showAlert('Please fill in all required fields', 'error');
+                return;
+            }
+            
+            const url = `${protocol}://${host}:${port}${path || ''}`;
+            
+            try {
+                if (editBackendId) {
+                    // Update existing backend
+                    const response = await fetch(`/api/backends/${editBackendId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name,
+                            url,
+                            type,
+                            weight: parseInt(weight),
+                            healthCheckPath,
+                            healthy: active
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        showAlert('Backend updated successfully', 'success');
+                        hideModal('addBackendModal');
+                        loadData();
+                    } else {
+                        showAlert('Failed to update backend', 'error');
+                    }
+                } else {
+                    // Add new backend
+                    const response = await fetch('/api/backends', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            name,
+                            url,
+                            type,
+                            weight: parseInt(weight),
+                            healthCheckPath,
+                            active
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const backend = await response.json();
+                        
+                        // Assign backend to domain if domainId is provided
+                        if (domainId) {
+                            await fetch(`/api/domains/${domainId}/backends`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    backendId: backend.id,
+                                    loadBalanceMethod: 'round_robin'
+                                })
+                            });
+                        }
+                        
+                        showAlert('Backend added successfully', 'success');
+                        hideModal('addBackendModal');
+                        loadData();
+                    } else {
+                        showAlert('Failed to add backend', 'error');
+                    }
+                }
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function removeBackend(backendId) {
+            // Find the backend to get its name
+            const backend = backends.find(b => b.id === backendId);
+            const backendName = backend ? backend.name : 'this backend';
+            const backendUrl = backend ? backend.url : '';
+            
+            showConfirm(
+                'Remove Backend',
+                `Are you sure you want to remove "${backendName}" (${backendUrl})? This action cannot be undone.`,
+                async (confirmed) => {
+                    if (!confirmed) return;
+                    
+                    try {
+                        const response = await fetch(`/api/backends/${backendId}`, {
+                            method: 'DELETE'
+                        });
+                        
+                        if (response.ok) {
+                            showAlert(`Backend "${backendName}" removed successfully`, 'success');
+                            loadData();
+                        } else {
+                            showAlert('Failed to remove backend', 'error');
+                        }
+                    } catch (error) {
+                        showAlert('Error: ' + error.message, 'error');
+                    }
+                }
+            );
+        }
+        
+        function manageDNS(domain) {
+            showAlert(`DNS management for ${domain} - Feature coming soon!`, 'info');
+        }
+        
+        function configureLoadBalancing(domainId) {
+            showAlert('Load balancing configuration - Feature coming soon!', 'info');
+        }
+        
+        function viewStats(domainId) {
+            showAlert('Domain statistics - Feature coming soon!', 'info');
+        }
+        
+        // Load data on page load
+        loadData();
+    </script>
+</body>
+</html>

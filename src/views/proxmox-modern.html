@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proxmox Integration - RAWRProxy</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #f59e0b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --dark: #1f2937;
+            --darker: #111827;
+            --light: #f9fafb;
+            --lighter: #ffffff;
+            --text: #374151;
+            --text-light: #6b7280;
+            --border: #e5e7eb;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+            --proxmox-orange: #e85d04;
+            --proxmox-dark: #ff6700;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--text);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            text-decoration: none;
+        }
+        
+        .logo-icon {
+            font-size: 2.5rem;
+        }
+        
+        .logo-text {
+            font-size: 1.875rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .nav {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .nav-btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--lighter);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .nav-btn:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .nav-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .nav-btn.proxmox {
+            background: linear-gradient(135deg, var(--proxmox-orange) 0%, var(--proxmox-dark) 100%);
+            color: white;
+            border: none;
+        }
+        
+        .nav-btn.cloudflare {
+            background: var(--lighter);
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        
+        .nav-btn.cloudflare:hover {
+            background: linear-gradient(135deg, #f48120 0%, #faae40 100%);
+            color: white;
+            border: none;
+        }
+        
+        /* Page specific styles */
+        .page-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .status-badge.connected {
+            background: var(--success);
+            color: white;
+        }
+        
+        .status-badge.disconnected {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .config-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+        
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border);
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-input, .form-select {
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        .form-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .btn-success {
+            background: var(--success);
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .btn-warning {
+            background: var(--warning);
+        }
+        
+        .btn-warning:hover {
+            background: #d97706;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .resources-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .resource-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 0.75rem;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
+        
+        .resource-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .resource-header {
+            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, var(--proxmox-orange) 0%, var(--proxmox-dark) 100%);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .resource-name {
+            font-weight: 600;
+            font-size: 1.125rem;
+        }
+        
+        .resource-type {
+            padding: 0.25rem 0.75rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .resource-body {
+            padding: 1.5rem;
+        }
+        
+        .resource-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+        
+        .resource-info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .resource-url {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: var(--light);
+            border-radius: 0.5rem;
+            font-family: monospace;
+            font-size: 0.875rem;
+            word-break: break-all;
+        }
+        
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .alert-info {
+            background: var(--info);
+            color: white;
+        }
+        
+        .alert-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .alert-error {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .health-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+        
+        .health-indicator.healthy {
+            background: var(--success);
+            animation: pulse-green 2s infinite;
+        }
+        
+        .health-indicator.unhealthy {
+            background: var(--danger);
+            animation: pulse-red 2s infinite;
+        }
+        
+        @keyframes pulse-green {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            50% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+        }
+        
+        @keyframes pulse-red {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+        }
+        
+        @media (max-width: 768px) {
+            .nav {
+                flex-wrap: wrap;
+            }
+            
+            .resources-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Consistent Header -->
+        <div class="header">
+            <a href="/" class="logo">
+                <span class="logo-icon">🦖</span>
+                <span class="logo-text">RAWRProxy</span>
+            </a>
+            <nav class="nav">
+                <a href="/" class="nav-btn">
+                    <span>🏠</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/domains" class="nav-btn">
+                    <span>🌐</span>
+                    <span>Domains</span>
+                </a>
+                <a href="/websocket" class="nav-btn">
+                    <span>🔌</span>
+                    <span>WebSocket</span>
+                </a>
+                <a href="/proxmox" class="nav-btn proxmox active">
+                    <span>🖥️</span>
+                    <span>Proxmox</span>
+                </a>
+                <a href="/cloudflare" class="nav-btn cloudflare">
+                    <span>☁️</span>
+                    <span>Cloudflare</span>
+                </a>
+            </nav>
+        </div>
+        
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">
+                <span>🖥️</span>
+                <span>Proxmox Integration</span>
+            </h1>
+            <div id="connectionStatus" class="status-badge disconnected">
+                <span class="health-indicator unhealthy"></span>
+                <span>Not Connected</span>
+            </div>
+        </div>
+        
+        <div id="alerts"></div>
+        
+        <!-- Configuration Section -->
+        <div class="config-section">
+            <h2 class="section-title">Connection Settings</h2>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Proxmox Host/IP</label>
+                    <input type="text" class="form-input" id="proxmoxHost" placeholder="192.168.1.100 or proxmox.local">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Port</label>
+                    <input type="number" class="form-input" id="proxmoxPort" value="8006">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-input" id="proxmoxUsername" placeholder="root">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Password</label>
+                    <input type="password" class="form-input" id="proxmoxPassword" placeholder="Password">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Realm</label>
+                    <select class="form-select" id="proxmoxRealm">
+                        <option value="pam">PAM (Linux PAM)</option>
+                        <option value="pve">PVE (Proxmox VE)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Domain for VMs/CTs</label>
+                    <input type="text" class="form-input" id="proxmoxDomain" value="local" placeholder="example.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Sync Interval (seconds)</label>
+                    <input type="number" class="form-input" id="syncInterval" value="60" min="30">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Naming Pattern</label>
+                    <input type="text" class="form-input" id="namingPattern" value="{name}.{domain}" placeholder="{name}.{domain}">
+                </div>
+            </div>
+            
+            <div class="form-checkbox">
+                <input type="checkbox" id="autoCreateDomains" checked>
+                <label for="autoCreateDomains">Automatically create domains and subdomains for VMs/CTs</label>
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn" onclick="testConnection()">
+                    <span>🔌</span>
+                    <span>Test Connection</span>
+                </button>
+                <button class="btn btn-success" onclick="saveConfig()">
+                    <span>💾</span>
+                    <span>Save Configuration</span>
+                </button>
+                <button class="btn btn-warning" onclick="syncNow()">
+                    <span>🔄</span>
+                    <span>Sync Now</span>
+                </button>
+            </div>
+            
+            <div style="margin-top: 1.5rem; color: var(--text-light); font-size: 0.875rem;">
+                <span id="lastSync"></span>
+            </div>
+        </div>
+        
+        <!-- Resources Section -->
+        <div class="config-section">
+            <h2 class="section-title">Discovered Resources</h2>
+            <div id="resourcesInfo" class="alert alert-info">
+                <span>ℹ️</span>
+                <span>Configure and test your Proxmox connection above to discover VMs and containers.</span>
+            </div>
+            <div id="resourcesList" class="resources-grid"></div>
+        </div>
+    </div>
+    
+    <script>
+        let config = {};
+        let resources = [];
+
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/proxmox/config');
+                config = await response.json();
+                
+                if (config.host) {
+                    document.getElementById('proxmoxHost').value = config.host;
+                    document.getElementById('proxmoxPort').value = config.port || 8006;
+                    document.getElementById('proxmoxUsername').value = config.username;
+                    document.getElementById('proxmoxRealm').value = config.realm || 'pam';
+                    document.getElementById('proxmoxDomain').value = config.domain || 'local';
+                    document.getElementById('syncInterval').value = (config.sync_interval || 60000) / 1000;
+                    document.getElementById('namingPattern').value = config.naming_pattern || '{name}.{domain}';
+                    document.getElementById('autoCreateDomains').checked = config.auto_create_domains === 1;
+                    
+                    if (config.enabled) {
+                        updateConnectionStatus(true);
+                    }
+                    
+                    if (config.last_sync) {
+                        document.getElementById('lastSync').textContent = 
+                            `Last sync: ${new Date(config.last_sync).toLocaleString()}`;
+                    }
+                    
+                    loadResources();
+                }
+            } catch (error) {
+                showAlert('Failed to load configuration', 'error');
+            }
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            if (connected) {
+                statusEl.className = 'status-badge connected';
+                statusEl.innerHTML = '<span class="health-indicator healthy"></span><span>Connected</span>';
+            } else {
+                statusEl.className = 'status-badge disconnected';
+                statusEl.innerHTML = '<span class="health-indicator unhealthy"></span><span>Not Connected</span>';
+            }
+        }
+
+        async function testConnection() {
+            const config = {
+                host: document.getElementById('proxmoxHost').value,
+                port: document.getElementById('proxmoxPort').value,
+                username: document.getElementById('proxmoxUsername').value,
+                password: document.getElementById('proxmoxPassword').value,
+                realm: document.getElementById('proxmoxRealm').value
+            };
+            
+            if (!config.host || !config.username || !config.password) {
+                showAlert('Please fill in all required fields', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/proxmox/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                    updateConnectionStatus(true);
+                } else {
+                    showAlert(`Connection failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function saveConfig() {
+            const config = {
+                host: document.getElementById('proxmoxHost').value,
+                port: document.getElementById('proxmoxPort').value,
+                username: document.getElementById('proxmoxUsername').value,
+                password: document.getElementById('proxmoxPassword').value,
+                realm: document.getElementById('proxmoxRealm').value,
+                domain: document.getElementById('proxmoxDomain').value,
+                syncInterval: document.getElementById('syncInterval').value * 1000,
+                namingPattern: document.getElementById('namingPattern').value,
+                autoCreateDomains: document.getElementById('autoCreateDomains').checked
+            };
+            
+            if (!config.host || !config.username || !config.password) {
+                showAlert('Please fill in all required fields', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/proxmox/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                if (response.ok) {
+                    showAlert('Configuration saved successfully', 'success');
+                    updateConnectionStatus(true);
+                    setTimeout(() => syncNow(), 1000);
+                } else {
+                    const error = await response.json();
+                    showAlert(`Failed to save: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Save failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function syncNow() {
+            showAlert('Starting Proxmox sync...', 'info');
+            
+            try {
+                const response = await fetch('/api/proxmox/sync', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(`Successfully synced ${result.count} resources`, 'success');
+                    document.getElementById('lastSync').textContent = 
+                        `Last sync: ${new Date().toLocaleString()}`;
+                    loadResources();
+                } else {
+                    showAlert(`Sync failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Sync failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadResources() {
+            try {
+                const response = await fetch('/api/proxmox/resources');
+                resources = await response.json();
+                
+                if (resources.length === 0) {
+                    document.getElementById('resourcesInfo').innerHTML = 
+                        '<span>📭</span><span>No resources found. Click "Sync Now" to discover VMs and containers.</span>';
+                    document.getElementById('resourcesInfo').className = 'alert alert-info';
+                    document.getElementById('resourcesList').innerHTML = '';
+                    return;
+                }
+                
+                document.getElementById('resourcesInfo').innerHTML = 
+                    `<span>✅</span><span>Found ${resources.length} resource(s) from Proxmox</span>`;
+                document.getElementById('resourcesInfo').className = 'alert alert-success';
+                
+                let html = '';
+                resources.forEach(resource => {
+                    const typeIcon = resource.type === 'vm' ? '💻' : '📦';
+                    html += `
+                        <div class="resource-card">
+                            <div class="resource-header">
+                                <div class="resource-name">${typeIcon} ${resource.name}</div>
+                                <div class="resource-type">${resource.type}</div>
+                            </div>
+                            <div class="resource-body">
+                                <div class="resource-info">
+                                    <div class="resource-info-row">
+                                        <span>VMID:</span>
+                                        <strong>${resource.vmid}</strong>
+                                    </div>
+                                    <div class="resource-info-row">
+                                        <span>Node:</span>
+                                        <strong>${resource.node}</strong>
+                                    </div>
+                                    <div class="resource-info-row">
+                                        <span>IP Address:</span>
+                                        <strong>${resource.ip}:${resource.port}</strong>
+                                    </div>
+                                    <div class="resource-info-row">
+                                        <span>Backend Status:</span>
+                                        <span style="display: flex; align-items: center;">
+                                            <span class="health-indicator ${resource.healthy ? 'healthy' : 'unhealthy'}"></span>
+                                            <strong>${resource.healthy ? 'Healthy' : 'Unhealthy'}</strong>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="resource-url">
+                                    <strong>URL:</strong> ${resource.hostname || 'Not configured'}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                document.getElementById('resourcesList').innerHTML = html;
+            } catch (error) {
+                showAlert('Failed to load resources', 'error');
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            
+            const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+            alertDiv.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+            
+            const alertsContainer = document.getElementById('alerts');
+            alertsContainer.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Load configuration on page load
+        loadConfig();
+        
+        // Auto-refresh resources every 30 seconds
+        setInterval(loadResources, 30000);
+    </script>
+</body>
+</html>

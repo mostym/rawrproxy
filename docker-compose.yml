@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  proxy:
+    build: .
+    container_name: custom-proxy
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    environment:
+      - PORT=8080
+      - ADMIN_PORT=8081
+      - NODE_ENV=production
+      - ENABLE_FORWARD_PROXY=true
+      - ENABLE_REVERSE_PROXY=true
+      - HTTPS_ENABLED=true
+      - AUTH_ENABLED=true
+      - RATE_LIMIT_ENABLED=true
+      - CACHE_ENABLED=true
+      - WEBSOCKET_ENABLED=true
+      - JWT_SECRET=${JWT_SECRET:-change-this-secret-key}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-changeme}
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - ./certs:/app/certs
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - proxy-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: proxy-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - proxy-network
+
+volumes:
+  redis-data:
+
+networks:
+  proxy-network:
+    driver: bridge

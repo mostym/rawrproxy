@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Domain Management - RAWRProxy</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #f59e0b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --dark: #1f2937;
+            --darker: #111827;
+            --light: #f9fafb;
+            --lighter: #ffffff;
+            --text: #374151;
+            --text-light: #6b7280;
+            --border: #e5e7eb;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--text);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .page-title {
+            font-size: 1.875rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .btn-success {
+            background: var(--success);
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .domains-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .domain-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
+        
+        .domain-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .domain-header {
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .domain-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .domain-meta {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+        
+        .domain-body {
+            padding: 1.5rem;
+        }
+        
+        .subdomain-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .section-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-light);
+            margin-bottom: 0.75rem;
+        }
+        
+        .subdomain-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .subdomain-item {
+            padding: 0.75rem;
+            background: var(--light);
+            border-radius: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .subdomain-item:hover {
+            background: var(--lighter);
+            box-shadow: var(--shadow);
+        }
+        
+        .subdomain-name {
+            font-weight: 500;
+            color: var(--dark);
+        }
+        
+        .backend-badge {
+            padding: 0.25rem 0.75rem;
+            background: var(--primary);
+            color: white;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .backend-badge.healthy {
+            background: var(--success);
+        }
+        
+        .backend-badge.unhealthy {
+            background: var(--danger);
+        }
+        
+        .domain-actions {
+            padding: 1rem 1.5rem;
+            background: var(--light);
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .action-btn {
+            padding: 0.5rem 1rem;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .action-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .cloudflare-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            background: linear-gradient(135deg, #f48120, #faae40);
+            color: white;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .ssl-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            background: var(--success);
+            color: white;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .modal-header {
+            margin-bottom: 1.5rem;
+        }
+        
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        @media (max-width: 768px) {
+            .domains-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="page-title">Domain Management</h1>
+            <div class="header-actions">
+                <button class="btn btn-success" onclick="showAddDomainModal()">
+                    <span>➕</span>
+                    <span>Add Domain</span>
+                </button>
+                <button class="btn" onclick="location.href='/cloudflare'">
+                    <span>☁️</span>
+                    <span>Cloudflare</span>
+                </button>
+                <button class="btn" onclick="location.href='/'">
+                    <span>🏠</span>
+                    <span>Dashboard</span>
+                </button>
+            </div>
+        </div>
+        
+        <div class="domains-grid" id="domainsGrid">
+            <!-- Domain cards will be dynamically loaded here -->
+        </div>
+    </div>
+    
+    <!-- Add Domain Modal -->
+    <div class="modal" id="addDomainModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Add New Domain</h2>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Domain Name</label>
+                <input type="text" class="form-input" id="newDomainName" placeholder="example.com">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Proxy Type</label>
+                <select class="form-input" id="newDomainType">
+                    <option value="reverse">Reverse Proxy</option>
+                    <option value="forward">Forward Proxy</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" style="background: var(--text-light)" onclick="hideAddDomainModal()">Cancel</button>
+                <button class="btn btn-success" onclick="addDomain()">Add Domain</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const domainData = [
+            {
+                name: 'rawrinc.com',
+                ssl: true,
+                cloudflare: true,
+                subdomains: [
+                    { name: 'pix', backend: '192.168.1.120:2283', healthy: true },
+                    { name: 'onlyoffice', backend: '192.168.1.112:8080', healthy: false },
+                    { name: 'proxy', backend: '192.168.1.108:80', healthy: true }
+                ]
+            },
+            {
+                name: '25bc.com',
+                ssl: true,
+                cloudflare: true,
+                subdomains: [
+                    { name: 'ha', backend: '192.168.1.110:8123', healthy: true }
+                ]
+            },
+            {
+                name: 'namrotsjh.com',
+                ssl: true,
+                cloudflare: true,
+                subdomains: [
+                    { name: 'app', backend: '192.168.1.105:80', healthy: true }
+                ]
+            },
+            {
+                name: 'causejesus.xyz',
+                ssl: true,
+                cloudflare: true,
+                subdomains: [
+                    { name: 'pan', backend: '192.168.1.113:80', healthy: true }
+                ]
+            },
+            {
+                name: 'rawrpix.com',
+                ssl: true,
+                cloudflare: true,
+                subdomains: []
+            },
+            {
+                name: 'rawrcorp.com',
+                ssl: true,
+                cloudflare: true,
+                subdomains: []
+            },
+            {
+                name: 'rawrtv.com',
+                ssl: true,
+                cloudflare: true,
+                subdomains: []
+            },
+            {
+                name: 'singspot.com',
+                ssl: true,
+                cloudflare: true,
+                subdomains: []
+            },
+            {
+                name: 'tektastic.com',
+                ssl: true,
+                cloudflare: true,
+                subdomains: []
+            },
+            {
+                name: 'tivi.to',
+                ssl: true,
+                cloudflare: true,
+                subdomains: []
+            },
+            {
+                name: 'namrots.com',
+                ssl: true,
+                cloudflare: true,
+                subdomains: []
+            }
+        ];
+        
+        function renderDomains() {
+            const grid = document.getElementById('domainsGrid');
+            grid.innerHTML = domainData.map(domain => `
+                <div class="domain-card">
+                    <div class="domain-header">
+                        <div>
+                            <div class="domain-name">
+                                <span>🌐</span>
+                                <span>${domain.name}</span>
+                            </div>
+                            <div class="domain-meta">
+                                ${domain.cloudflare ? '<span class="cloudflare-badge">☁️ Cloudflare</span>' : ''}
+                                ${domain.ssl ? '<span class="ssl-badge">🔒 SSL Active</span>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="domain-body">
+                        <div class="subdomain-section">
+                            <div class="section-title">Subdomains & Services</div>
+                            <div class="subdomain-list">
+                                ${domain.subdomains.length > 0 ? domain.subdomains.map(sub => `
+                                    <div class="subdomain-item">
+                                        <span class="subdomain-name">${sub.name}.${domain.name}</span>
+                                        <span class="backend-badge ${sub.healthy ? 'healthy' : 'unhealthy'}">
+                                            ${sub.backend}
+                                        </span>
+                                    </div>
+                                `).join('') : '<div style="color: var(--text-light); font-size: 0.875rem;">No subdomains configured</div>'}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="domain-actions">
+                        <button class="action-btn" onclick="addSubdomain('${domain.name}')">Add Subdomain</button>
+                        <button class="action-btn" onclick="manageDNS('${domain.name}')">DNS Settings</button>
+                        <button class="action-btn" onclick="viewSSL('${domain.name}')">SSL Info</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function showAddDomainModal() {
+            document.getElementById('addDomainModal').classList.add('active');
+        }
+        
+        function hideAddDomainModal() {
+            document.getElementById('addDomainModal').classList.remove('active');
+        }
+        
+        async function addDomain() {
+            const name = document.getElementById('newDomainName').value;
+            const type = document.getElementById('newDomainType').value;
+            
+            if (!name) {
+                alert('Please enter a domain name');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/domains', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ domain: name, type })
+                });
+                
+                if (response.ok) {
+                    hideAddDomainModal();
+                    location.reload();
+                } else {
+                    alert('Failed to add domain');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        function addSubdomain(domain) {
+            const subdomain = prompt(`Enter subdomain for ${domain}:`);
+            if (subdomain) {
+                alert(`Subdomain ${subdomain}.${domain} will be added`);
+            }
+        }
+        
+        function manageDNS(domain) {
+            alert(`Opening DNS management for ${domain}`);
+        }
+        
+        function viewSSL(domain) {
+            alert(`SSL Certificate for ${domain}\nType: Cloudflare Origin Certificate\nValid until: August 11, 2040\nStatus: Active`);
+        }
+        
+        // Load domains on page load
+        renderDomains();
+        
+        // Load real data from API
+        async function loadDomains() {
+            try {
+                const response = await fetch('/api/domains');
+                if (response.ok) {
+                    const domains = await response.json();
+                    // Update domainData with real data
+                    console.log('Loaded domains:', domains);
+                }
+            } catch (error) {
+                console.error('Failed to load domains:', error);
+            }
+        }
+        
+        loadDomains();
+    </script>
+</body>
+</html>

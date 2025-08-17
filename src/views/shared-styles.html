@@ -1,0 +1,146 @@
+<!-- Shared Styles and Header Component -->
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    
+    :root {
+        --primary: #6366f1;
+        --primary-dark: #4f46e5;
+        --secondary: #f59e0b;
+        --success: #10b981;
+        --danger: #ef4444;
+        --warning: #f59e0b;
+        --info: #3b82f6;
+        --dark: #1f2937;
+        --darker: #111827;
+        --light: #f9fafb;
+        --lighter: #ffffff;
+        --text: #374151;
+        --text-light: #6b7280;
+        --border: #e5e7eb;
+        --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    }
+    
+    body {
+        font-family: 'Inter', sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        color: var(--text);
+    }
+    
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    
+    /* Consistent Header */
+    .header {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 1rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-lg);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .logo {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        text-decoration: none;
+    }
+    
+    .logo-icon {
+        font-size: 2.5rem;
+    }
+    
+    .logo-text {
+        font-size: 1.875rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    
+    .nav {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+    
+    .nav-btn {
+        padding: 0.75rem 1.5rem;
+        background: var(--lighter);
+        border: 1px solid var(--border);
+        border-radius: 0.5rem;
+        color: var(--text);
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .nav-btn:hover {
+        background: var(--primary);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .nav-btn.active {
+        background: var(--primary);
+        color: white;
+    }
+    
+    .nav-btn.cloudflare {
+        background: linear-gradient(135deg, #f48120 0%, #faae40 100%);
+        color: white;
+        border: none;
+    }
+    
+    .nav-btn.cloudflare:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-lg);
+    }
+</style>
+
+<script>
+    function renderHeader(currentPage = '') {
+        return `
+            <div class="header">
+                <a href="/" class="logo">
+                    <span class="logo-icon">🦖</span>
+                    <span class="logo-text">RAWRProxy</span>
+                </a>
+                <nav class="nav">
+                    <a href="/" class="nav-btn ${currentPage === 'dashboard' ? 'active' : ''}">
+                        <span>🏠</span>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="/domains" class="nav-btn ${currentPage === 'domains' ? 'active' : ''}">
+                        <span>🌐</span>
+                        <span>Domains</span>
+                    </a>
+                    <a href="/proxmox" class="nav-btn ${currentPage === 'proxmox' ? 'active' : ''}">
+                        <span>🖥️</span>
+                        <span>Proxmox</span>
+                    </a>
+                    <a href="/cloudflare" class="nav-btn cloudflare ${currentPage === 'cloudflare' ? 'active' : ''}">
+                        <span>☁️</span>
+                        <span>Cloudflare</span>
+                    </a>
+                </nav>
+            </div>
+        `;
+    }
+</script>

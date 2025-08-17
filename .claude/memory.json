@@ -1,0 +1,108 @@
+{
+  "sessions": [
+    {
+      "id": "2025-08-16-morning-development",
+      "name": "Morning Development",
+      "startTime": "2025-08-16T08:26:40.495Z",
+      "context": {
+        "auto": true,
+        "startTime": "2025-08-16T08:26:40.495Z"
+      },
+      "status": "active"
+    },
+    {
+      "id": "2025-08-16-project-setup",
+      "name": "Project Setup",
+      "startTime": "2025-08-16T08:26:40.496Z",
+      "context": {
+        "project": "proxy",
+        "initialized": "2025-08-16T08:26:40.496Z",
+        "tool": "claude-memory"
+      },
+      "status": "active"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "7dc0daa7",
+      "sessionId": "2025-08-16-project-setup",
+      "timestamp": "2025-08-16T08:26:40.497Z",
+      "decision": "Install Claude Memory",
+      "reasoning": "Enable persistent AI memory across sessions for better project intelligence",
+      "alternatives": [
+        "Manual documentation",
+        "External tools",
+        "No memory system"
+      ],
+      "outcome": null,
+      "context": {
+        "project": "proxy",
+        "initialized": "2025-08-16T08:26:40.496Z",
+        "tool": "claude-memory"
+      }
+    }
+  ],
+  "patterns": [],
+  "actions": [
+    {
+      "id": "aa6ee6a5",
+      "sessionId": "2025-08-16-morning-development",
+      "timestamp": "2025-08-16T08:26:40.496Z",
+      "actionType": "session_started",
+      "details": {
+        "sessionName": "Morning Development",
+        "context": {
+          "auto": true,
+          "startTime": "2025-08-16T08:26:40.495Z"
+        }
+      },
+      "result": ""
+    },
+    {
+      "id": "3510c690",
+      "sessionId": "2025-08-16-project-setup",
+      "timestamp": "2025-08-16T08:26:40.497Z",
+      "actionType": "session_started",
+      "details": {
+        "sessionName": "Project Setup",
+        "context": {
+          "project": "proxy",
+          "initialized": "2025-08-16T08:26:40.496Z",
+          "tool": "claude-memory"
+        }
+      },
+      "result": ""
+    },
+    {
+      "id": "50b3d760",
+      "sessionId": "2025-08-16-project-setup",
+      "timestamp": "2025-08-16T08:26:40.497Z",
+      "actionType": "claude_file_updated",
+      "details": {
+        "hasManualSections": false,
+        "backupCreated": false,
+        "preservedSections": []
+      },
+      "result": ""
+    },
+    {
+      "id": "484e2acf",
+      "sessionId": "2025-08-16-project-setup",
+      "timestamp": "2025-08-16T08:26:40.510Z",
+      "actionType": "decision_recorded",
+      "details": {
+        "decision": "Install Claude Memory",
+        "decisionId": "7dc0daa7"
+      },
+      "result": ""
+    }
+  ],
+  "knowledge": {},
+  "tasks": [],
+  "created": "2025-08-16T08:26:40.495Z",
+  "version": "1.11.1",
+  "projectName": "proxy",
+  "lastBackup": "2025-08-16T08:26:40.496Z",
+  "actionsSinceBackup": 3,
+  "lastUpdated": "2025-08-16T08:26:40.510Z"
+}

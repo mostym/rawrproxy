@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Monitor - RAWRProxy</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1f2937;
+            --light: #f3f4f6;
+            --text: #374151;
+            --text-light: #6b7280;
+            --border: #e5e7eb;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--dark);
+        }
+
+        .nav {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-btn {
+            padding: 0.5rem 1rem;
+            background: var(--light);
+            border: none;
+            border-radius: 0.5rem;
+            color: var(--text);
+            text-decoration: none;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .nav-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .nav-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .metric-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            color: var(--text-light);
+            font-size: 0.875rem;
+        }
+
+        .metric-icon {
+            float: right;
+            font-size: 2rem;
+            opacity: 0.2;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: var(--light);
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .connection-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .connection-item {
+            background: var(--light);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .connection-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .connection-id {
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 0.875rem;
+        }
+
+        .connection-target {
+            color: var(--text-light);
+            font-size: 0.75rem;
+        }
+
+        .connection-stats {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .stat-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .stat-badge.messages {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .stat-badge.bytes {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .stat-badge.duration {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .backend-pool {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .backend-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem;
+            background: var(--light);
+            border-radius: 0.5rem;
+        }
+
+        .backend-name {
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .backend-count {
+            background: var(--primary);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+
+        .status-indicator.active {
+            background: var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-light);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+
+        .page-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .page-subtitle {
+            color: var(--text-light);
+            font-size: 1rem;
+        }
+        
+        .refresh-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .refresh-btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .full-width {
+            grid-column: span 2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <span>🦖</span>
+                <span>RAWRProxy</span>
+                <span style="font-size: 0.875rem; color: var(--text-light);">WebSocket Monitor</span>
+            </div>
+            <nav class="nav">
+                <a href="/" class="nav-btn">Dashboard</a>
+                <a href="/domains" class="nav-btn">Domains</a>
+                <a href="/websocket" class="nav-btn active">WebSocket</a>
+                <a href="/proxmox" class="nav-btn">Proxmox</a>
+                <a href="/cloudflare" class="nav-btn">Cloudflare</a>
+            </nav>
+        </div>
+        
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">
+                <span>🔌</span>
+                <span>WebSocket Monitor</span>
+            </h1>
+            <div class="page-subtitle">Real-time WebSocket connection monitoring and metrics</div>
+        </div>
+
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-icon">🔌</div>
+                <div class="metric-value" id="activeConnections">0</div>
+                <div class="metric-label">Active Connections</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon">📊</div>
+                <div class="metric-value" id="totalConnections">0</div>
+                <div class="metric-label">Total Connections</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon">💬</div>
+                <div class="metric-value" id="messagesProxied">0</div>
+                <div class="metric-label">Messages Proxied</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon">📡</div>
+                <div class="metric-value" id="bytesTransferred">0</div>
+                <div class="metric-label">Data Transferred</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon">⚠️</div>
+                <div class="metric-value" id="errors">0</div>
+                <div class="metric-label">Errors</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="card">
+                <div class="card-header">
+                    Active Connections
+                    <button class="refresh-btn" style="float: right;" onclick="refreshData()">Refresh</button>
+                </div>
+                <div class="card-body">
+                    <div id="connectionsList" class="connection-list">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🔌</div>
+                            <div>No active WebSocket connections</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    Connections by Backend
+                </div>
+                <div class="card-body">
+                    <div id="backendsList" class="backend-pool">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🖥️</div>
+                            <div>No backend connections</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card full-width">
+                <div class="card-header">
+                    Connection Pools
+                </div>
+                <div class="card-body">
+                    <div id="poolsList" class="backend-pool">
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🏊</div>
+                            <div>No connection pools active</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function formatDuration(ms) {
+            if (ms < 1000) return ms + 'ms';
+            if (ms < 60000) return (ms / 1000).toFixed(1) + 's';
+            if (ms < 3600000) return (ms / 60000).toFixed(1) + 'm';
+            return (ms / 3600000).toFixed(1) + 'h';
+        }
+
+        async function refreshData() {
+            try {
+                const response = await fetch('/api/websocket/metrics');
+                const data = await response.json();
+
+                // Update metrics
+                document.getElementById('activeConnections').textContent = data.activeConnections || 0;
+                document.getElementById('totalConnections').textContent = data.totalConnections || 0;
+                document.getElementById('messagesProxied').textContent = data.messagesProxied || 0;
+                document.getElementById('bytesTransferred').textContent = formatBytes(data.bytesTransferred || 0);
+                document.getElementById('errors').textContent = data.errors || 0;
+
+                // Update active connections
+                const connectionsList = document.getElementById('connectionsList');
+                if (data.activeConnectionDetails && data.activeConnectionDetails.length > 0) {
+                    connectionsList.innerHTML = data.activeConnectionDetails.map(conn => `
+                        <div class="connection-item">
+                            <div class="connection-details">
+                                <div class="connection-id">
+                                    <span class="status-indicator active"></span>
+                                    ${conn.clientId}
+                                </div>
+                                <div class="connection-target">${conn.target} → ${conn.backend}</div>
+                            </div>
+                            <div class="connection-stats">
+                                <span class="stat-badge messages">
+                                    ↑${conn.messagesFromClient} ↓${conn.messagesFromBackend}
+                                </span>
+                                <span class="stat-badge bytes">
+                                    ${formatBytes(conn.bytesFromClient + conn.bytesFromBackend)}
+                                </span>
+                                <span class="stat-badge duration">
+                                    ${formatDuration(conn.duration)}
+                                </span>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    connectionsList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🔌</div>
+                            <div>No active WebSocket connections</div>
+                        </div>
+                    `;
+                }
+
+                // Update backends
+                const backendsList = document.getElementById('backendsList');
+                if (data.connectionsByBackend && data.connectionsByBackend.length > 0) {
+                    backendsList.innerHTML = data.connectionsByBackend
+                        .filter(b => b.count > 0)
+                        .map(backend => `
+                            <div class="backend-item">
+                                <div class="backend-name">${backend.backend}</div>
+                                <div class="backend-count">${backend.count}</div>
+                            </div>
+                        `).join('');
+                } else {
+                    backendsList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🖥️</div>
+                            <div>No backend connections</div>
+                        </div>
+                    `;
+                }
+
+                // Update pools
+                const poolsList = document.getElementById('poolsList');
+                if (data.pools && data.pools.length > 0) {
+                    poolsList.innerHTML = data.pools.map(pool => `
+                        <div class="backend-item">
+                            <div class="backend-name">${pool.target}</div>
+                            <div class="backend-count">${pool.connections} connections</div>
+                        </div>
+                    `).join('');
+                } else {
+                    poolsList.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">🏊</div>
+                            <div>No connection pools active</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Failed to fetch WebSocket metrics:', error);
+            }
+        }
+
+        // Auto-refresh every 5 seconds
+        setInterval(refreshData, 5000);
+        
+        // Initial load
+        refreshData();
+    </script>
+</body>
+</html>

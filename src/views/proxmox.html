@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>RAWRProxy - Proxmox Integration</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .header {
+            background: white;
+            border-radius: 10px;
+            padding: 20px 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo {
+            font-size: 35px;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .section {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .status-badge.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-badge.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .resource-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .resource-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            background: #f9f9f9;
+        }
+        
+        .resource-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .resource-type {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        
+        .resource-type.vm {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        
+        .resource-type.container {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+        
+        .resource-info {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.5;
+        }
+        
+        .resource-url {
+            margin-top: 10px;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1><span class="logo">🦖</span> RAWRProxy - Proxmox Integration</h1>
+        <div class="nav-buttons">
+            <a href="/" class="btn btn-primary">Dashboard</a>
+            <a href="/domains" class="btn btn-primary">Domains</a>
+        </div>
+    </div>
+
+    <div id="alerts"></div>
+
+    <div class="section">
+        <h2>Proxmox Connection Settings</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Proxmox Host/IP</label>
+                <input type="text" id="proxmoxHost" placeholder="192.168.1.100 or proxmox.local">
+            </div>
+            <div class="form-group">
+                <label>Port</label>
+                <input type="number" id="proxmoxPort" value="8006">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="proxmoxUsername" placeholder="root">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="proxmoxPassword" placeholder="Password">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label>Realm</label>
+                <select id="proxmoxRealm">
+                    <option value="pam">pam (Linux PAM)</option>
+                    <option value="pve">pve (Proxmox VE)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Domain for VMs/CTs</label>
+                <input type="text" id="proxmoxDomain" value="local" placeholder="example.com">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label>Sync Interval (seconds)</label>
+                <input type="number" id="syncInterval" value="60" min="30">
+            </div>
+            <div class="form-group">
+                <label>Naming Pattern</label>
+                <input type="text" id="namingPattern" value="{name}.{domain}" placeholder="{name}.{domain}">
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label>
+                <input type="checkbox" id="autoCreateDomains" checked>
+                Automatically create domains and subdomains for VMs/CTs
+            </label>
+        </div>
+        
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="testConnection()">Test Connection</button>
+            <button class="btn btn-success" onclick="saveConfig()">Save Configuration</button>
+            <button class="btn btn-warning" onclick="syncNow()">Sync Now</button>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <span id="connectionStatus" class="status-badge disconnected">Not Connected</span>
+            <span id="lastSync" style="margin-left: 15px; color: #666; font-size: 14px;"></span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Discovered Resources</h2>
+        <div id="resourcesInfo" class="alert alert-info">
+            Configure and test your Proxmox connection above to discover VMs and containers.
+        </div>
+        <div id="resourcesList" class="resource-grid"></div>
+    </div>
+
+    <script>
+        let config = {};
+        let resources = [];
+
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/proxmox/config');
+                config = await response.json();
+                
+                if (config.host) {
+                    document.getElementById('proxmoxHost').value = config.host;
+                    document.getElementById('proxmoxPort').value = config.port || 8006;
+                    document.getElementById('proxmoxUsername').value = config.username;
+                    document.getElementById('proxmoxRealm').value = config.realm || 'pam';
+                    document.getElementById('proxmoxDomain').value = config.domain || 'local';
+                    document.getElementById('syncInterval').value = (config.sync_interval || 60000) / 1000;
+                    document.getElementById('namingPattern').value = config.naming_pattern || '{name}.{domain}';
+                    document.getElementById('autoCreateDomains').checked = config.auto_create_domains === 1;
+                    
+                    if (config.enabled) {
+                        document.getElementById('connectionStatus').className = 'status-badge connected';
+                        document.getElementById('connectionStatus').textContent = 'Connected';
+                    }
+                    
+                    if (config.last_sync) {
+                        document.getElementById('lastSync').textContent = 
+                            `Last sync: ${new Date(config.last_sync).toLocaleString()}`;
+                    }
+                    
+                    loadResources();
+                }
+            } catch (error) {
+                showAlert('Failed to load configuration', 'error');
+            }
+        }
+
+        async function testConnection() {
+            const config = {
+                host: document.getElementById('proxmoxHost').value,
+                port: document.getElementById('proxmoxPort').value,
+                username: document.getElementById('proxmoxUsername').value,
+                password: document.getElementById('proxmoxPassword').value,
+                realm: document.getElementById('proxmoxRealm').value
+            };
+            
+            if (!config.host || !config.username || !config.password) {
+                showAlert('Please fill in all required fields', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/proxmox/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                    document.getElementById('connectionStatus').className = 'status-badge connected';
+                    document.getElementById('connectionStatus').textContent = 'Connected';
+                } else {
+                    showAlert(`Connection failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function saveConfig() {
+            const config = {
+                host: document.getElementById('proxmoxHost').value,
+                port: document.getElementById('proxmoxPort').value,
+                username: document.getElementById('proxmoxUsername').value,
+                password: document.getElementById('proxmoxPassword').value,
+                realm: document.getElementById('proxmoxRealm').value,
+                domain: document.getElementById('proxmoxDomain').value,
+                syncInterval: document.getElementById('syncInterval').value * 1000,
+                namingPattern: document.getElementById('namingPattern').value,
+                autoCreateDomains: document.getElementById('autoCreateDomains').checked
+            };
+            
+            if (!config.host || !config.username || !config.password) {
+                showAlert('Please fill in all required fields', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/proxmox/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                if (response.ok) {
+                    showAlert('Configuration saved successfully', 'success');
+                    document.getElementById('connectionStatus').className = 'status-badge connected';
+                    document.getElementById('connectionStatus').textContent = 'Connected';
+                    setTimeout(() => syncNow(), 1000);
+                } else {
+                    const error = await response.json();
+                    showAlert(`Failed to save: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Save failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function syncNow() {
+            showAlert('Starting Proxmox sync...', 'info');
+            
+            try {
+                const response = await fetch('/api/proxmox/sync', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(`Successfully synced ${result.count} resources`, 'success');
+                    document.getElementById('lastSync').textContent = 
+                        `Last sync: ${new Date().toLocaleString()}`;
+                    loadResources();
+                } else {
+                    showAlert(`Sync failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Sync failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadResources() {
+            try {
+                const response = await fetch('/api/proxmox/resources');
+                resources = await response.json();
+                
+                if (resources.length === 0) {
+                    document.getElementById('resourcesInfo').innerHTML = 
+                        'No resources found. Click "Sync Now" to discover VMs and containers.';
+                    document.getElementById('resourcesList').innerHTML = '';
+                    return;
+                }
+                
+                document.getElementById('resourcesInfo').innerHTML = 
+                    `Found ${resources.length} resource(s) from Proxmox`;
+                
+                let html = '';
+                resources.forEach(resource => {
+                    const healthStatus = resource.healthy ? '🟢' : '🔴';
+                    html += `
+                        <div class="resource-card">
+                            <div class="resource-header">
+                                <strong>${resource.name}</strong>
+                                <span class="resource-type ${resource.type}">${resource.type}</span>
+                            </div>
+                            <div class="resource-info">
+                                <div>VMID: ${resource.vmid}</div>
+                                <div>Node: ${resource.node}</div>
+                                <div>IP: ${resource.ip}:${resource.port}</div>
+                                <div>Status: ${healthStatus} Backend ${resource.healthy ? 'Healthy' : 'Unhealthy'}</div>
+                            </div>
+                            <div class="resource-url">
+                                <strong>URL:</strong> ${resource.hostname || 'Not configured'}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                document.getElementById('resourcesList').innerHTML = html;
+            } catch (error) {
+                showAlert('Failed to load resources', 'error');
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            const alertsContainer = document.getElementById('alerts');
+            alertsContainer.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Load configuration on page load
+        loadConfig();
+        
+        // Auto-refresh resources every 30 seconds
+        setInterval(loadResources, 30000);
+    </script>
+</body>
+</html>

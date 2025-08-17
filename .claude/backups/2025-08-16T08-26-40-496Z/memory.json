@@ -1,0 +1,39 @@
+{
+  "sessions": [
+    {
+      "id": "2025-08-16-morning-development",
+      "name": "Morning Development",
+      "startTime": "2025-08-16T08:26:40.495Z",
+      "context": {
+        "auto": true,
+        "startTime": "2025-08-16T08:26:40.495Z"
+      },
+      "status": "active"
+    }
+  ],
+  "decisions": [],
+  "patterns": [],
+  "actions": [
+    {
+      "id": "aa6ee6a5",
+      "sessionId": "2025-08-16-morning-development",
+      "timestamp": "2025-08-16T08:26:40.496Z",
+      "actionType": "session_started",
+      "details": {
+        "sessionName": "Morning Development",
+        "context": {
+          "auto": true,
+          "startTime": "2025-08-16T08:26:40.495Z"
+        }
+      },
+      "result": ""
+    }
+  ],
+  "knowledge": {},
+  "tasks": [],
+  "created": "2025-08-16T08:26:40.495Z",
+  "version": "1.11.1",
+  "projectName": "proxy",
+  "actionsSinceBackup": 1,
+  "lastUpdated": "2025-08-16T08:26:40.496Z"
+}

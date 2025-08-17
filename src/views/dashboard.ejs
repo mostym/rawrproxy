@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAWRProxy Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #f59e0b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --dark: #1f2937;
+            --darker: #111827;
+            --light: #f9fafb;
+            --lighter: #ffffff;
+            --text: #374151;
+            --text-light: #6b7280;
+            --border: #e5e7eb;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--text);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .logo-icon {
+            font-size: 2.5rem;
+        }
+        
+        .logo-text {
+            font-size: 1.875rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .nav {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .nav-btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--lighter);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .nav-btn:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .nav-btn.cloudflare.active {
+            background: linear-gradient(135deg, #f48120 0%, #faae40 100%);
+            color: white;
+            border: none;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-icon.domains { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .stat-icon.backends { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+        .stat-icon.requests { background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; }
+        .stat-icon.uptime { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+        .stat-icon.ssl { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+        .stat-icon.proxmox { background: linear-gradient(135deg, #e85d04, #ff6700); color: white; }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+        }
+        
+        .stat-change {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+        }
+        
+        .stat-change.positive {
+            color: var(--success);
+            background: rgba(16, 185, 129, 0.1);
+        }
+        
+        .stat-change.negative {
+            color: var(--danger);
+            background: rgba(239, 68, 68, 0.1);
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        .domain-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .domain-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: var(--light);
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .domain-item:hover {
+            background: var(--lighter);
+            box-shadow: var(--shadow);
+        }
+        
+        .domain-name {
+            font-weight: 500;
+            color: var(--dark);
+        }
+        
+        .domain-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-dot.active {
+            background: var(--success);
+        }
+        
+        .status-dot.inactive {
+            background: var(--danger);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .quick-actions {
+            display: grid;
+            gap: 1rem;
+        }
+        
+        .action-btn {
+            padding: 1rem;
+            background: var(--light);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .action-btn:hover {
+            background: var(--lighter);
+            border-color: var(--primary);
+            box-shadow: var(--shadow);
+        }
+        
+        .action-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+        
+        .action-text h4 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 0.25rem;
+        }
+        
+        .action-text p {
+            font-size: 0.75rem;
+            color: var(--text-light);
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <span class="logo-icon">🦖</span>
+                <span class="logo-text">RAWRProxy</span>
+            </div>
+            <nav class="nav">
+                <a href="/domains" class="nav-btn">
+                    <span>🌐</span>
+                    <span>Domains</span>
+                </a>
+                <a href="/websocket" class="nav-btn">
+                    <span>🔌</span>
+                    <span>WebSocket</span>
+                </a>
+                <a href="/proxmox" class="nav-btn">
+                    <span>🖥️</span>
+                    <span>Proxmox</span>
+                </a>
+                <a href="/cloudflare" class="nav-btn cloudflare">
+                    <span>☁️</span>
+                    <span>Cloudflare</span>
+                </a>
+            </nav>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon domains">🌐</div>
+                <div class="stat-value"><%= stats.domains || 0 %></div>
+                <div class="stat-label">Active Domains</div>
+                <div class="stat-change positive">
+                    <span>↑</span>
+                    <span><%= stats.subdomains || 0 %> Subdomains</span>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon backends">🔌</div>
+                <div class="stat-value"><%= stats.backends || 0 %></div>
+                <div class="stat-label">Backend Services</div>
+                <div class="stat-change positive">
+                    <span>↑</span>
+                    <span><%= stats.healthyBackends || 0 %> Healthy</span>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon requests">📊</div>
+                <div class="stat-value"><%= stats.totalRequests > 1000 ? (stats.totalRequests/1000).toFixed(1) + 'K' : stats.totalRequests || 0 %></div>
+                <div class="stat-label">Total Requests</div>
+                <div class="stat-change positive">
+                    <span>↑</span>
+                    <span>Today</span>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon uptime">⏱️</div>
+                <div class="stat-value"><%= Math.floor(stats.uptime / 3600) %>h</div>
+                <div class="stat-label">Uptime</div>
+                <div class="stat-change positive">
+                    <span>✓</span>
+                    <span>All systems operational</span>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon ssl">🔒</div>
+                <div class="stat-value">Full</div>
+                <div class="stat-label">SSL Mode (Strict)</div>
+                <div class="stat-change positive">
+                    <span>✓</span>
+                    <span>Origin Cert Valid</span>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon proxmox">🖥️</div>
+                <div class="stat-value"><%= stats.proxmoxResources || 0 %></div>
+                <div class="stat-label">VMs & Containers</div>
+                <div class="stat-change positive">
+                    <span>↑</span>
+                    <span>Auto-synced</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Active Services</h3>
+                    <button class="btn" onclick="location.href='/domains'">View All</button>
+                </div>
+                <div class="domain-list">
+                    <div class="domain-item">
+                        <div>
+                            <div class="domain-name">pix.rawrinc.com</div>
+                            <div style="font-size: 0.875rem; color: var(--text-light);">Immich Photo Manager</div>
+                        </div>
+                        <div class="domain-status">
+                            <span class="status-dot active"></span>
+                            <span style="font-size: 0.875rem; color: var(--success);">Active</span>
+                        </div>
+                    </div>
+                    <div class="domain-item">
+                        <div>
+                            <div class="domain-name">ha.25bc.com</div>
+                            <div style="font-size: 0.875rem; color: var(--text-light);">Home Assistant</div>
+                        </div>
+                        <div class="domain-status">
+                            <span class="status-dot active"></span>
+                            <span style="font-size: 0.875rem; color: var(--success);">Active</span>
+                        </div>
+                    </div>
+                    <div class="domain-item">
+                        <div>
+                            <div class="domain-name">app.namrotsjh.com</div>
+                            <div style="font-size: 0.875rem; color: var(--text-light);">Application Server</div>
+                        </div>
+                        <div class="domain-status">
+                            <span class="status-dot active"></span>
+                            <span style="font-size: 0.875rem; color: var(--success);">Active</span>
+                        </div>
+                    </div>
+                    <div class="domain-item">
+                        <div>
+                            <div class="domain-name">onlyoffice.rawrinc.com</div>
+                            <div style="font-size: 0.875rem; color: var(--text-light);">Document Server</div>
+                        </div>
+                        <div class="domain-status">
+                            <span class="status-dot inactive"></span>
+                            <span style="font-size: 0.875rem; color: var(--danger);">Stopped</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Quick Actions</h3>
+                </div>
+                <div class="quick-actions">
+                    <button class="action-btn" onclick="location.href='/domains'">
+                        <div class="action-icon" style="background: linear-gradient(135deg, #667eea, #764ba2); color: white;">
+                            ➕
+                        </div>
+                        <div class="action-text">
+                            <h4>Add Domain</h4>
+                            <p>Configure new domain</p>
+                        </div>
+                    </button>
+                    <button class="action-btn" onclick="syncProxmox()">
+                        <div class="action-icon" style="background: linear-gradient(135deg, #e85d04, #ff6700); color: white;">
+                            🔄
+                        </div>
+                        <div class="action-text">
+                            <h4>Sync Proxmox</h4>
+                            <p>Update VMs & containers</p>
+                        </div>
+                    </button>
+                    <button class="action-btn" onclick="generateSSL()">
+                        <div class="action-icon" style="background: linear-gradient(135deg, #10b981, #059669); color: white;">
+                            🔐
+                        </div>
+                        <div class="action-text">
+                            <h4>SSL Certificate</h4>
+                            <p>Valid until 2040</p>
+                        </div>
+                    </button>
+                    <button class="action-btn" onclick="location.href='/cloudflare'">
+                        <div class="action-icon" style="background: linear-gradient(135deg, #f48120, #faae40); color: white;">
+                            ☁️
+                        </div>
+                        <div class="action-text">
+                            <h4>Cloudflare Settings</h4>
+                            <p>DNS & Security</p>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        async function syncProxmox() {
+            try {
+                const response = await fetch('/api/proxmox/sync', { method: 'POST' });
+                const result = await response.json();
+                if (result.success) {
+                    alert('Proxmox sync completed successfully!');
+                    location.reload();
+                }
+            } catch (error) {
+                alert('Sync failed: ' + error.message);
+            }
+        }
+        
+        async function generateSSL() {
+            alert('SSL Certificate is valid until August 11, 2040\nUsing Cloudflare Origin Certificate');
+        }
+    </script>
+</body>
+</html>

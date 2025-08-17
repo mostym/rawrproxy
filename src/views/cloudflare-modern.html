@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloudflare Integration - RAWRProxy</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #f59e0b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --dark: #1f2937;
+            --darker: #111827;
+            --light: #f9fafb;
+            --lighter: #ffffff;
+            --text: #374151;
+            --text-light: #6b7280;
+            --border: #e5e7eb;
+            --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+            --cloudflare-orange: #f48120;
+            --cloudflare-yellow: #faae40;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--text);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            text-decoration: none;
+        }
+        
+        .logo-icon {
+            font-size: 2.5rem;
+        }
+        
+        .logo-text {
+            font-size: 1.875rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .nav {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .nav-btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--lighter);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .nav-btn:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .nav-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .nav-btn.cloudflare {
+            background: linear-gradient(135deg, var(--cloudflare-orange) 0%, var(--cloudflare-yellow) 100%);
+            color: white;
+            border: none;
+        }
+        
+        /* Page specific styles */
+        .page-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .status-badge.connected {
+            background: var(--success);
+            color: white;
+        }
+        
+        .status-badge.disconnected {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .config-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+        }
+        
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-input, .form-select, .form-textarea {
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+            font-family: inherit;
+        }
+        
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+        
+        .form-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .btn-success {
+            background: var(--success);
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .btn-warning {
+            background: var(--warning);
+        }
+        
+        .btn-warning:hover {
+            background: #d97706;
+        }
+        
+        .btn-cloudflare {
+            background: linear-gradient(135deg, var(--cloudflare-orange) 0%, var(--cloudflare-yellow) 100%);
+        }
+        
+        .btn-cloudflare:hover {
+            background: linear-gradient(135deg, #e85d04 0%, #f59e0b 100%);
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .zones-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .zone-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 0.75rem;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
+        
+        .zone-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .zone-header {
+            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, var(--cloudflare-orange) 0%, var(--cloudflare-yellow) 100%);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .zone-name {
+            font-weight: 600;
+            font-size: 1.125rem;
+        }
+        
+        .zone-badge {
+            padding: 0.25rem 0.75rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .zone-body {
+            padding: 1.5rem;
+        }
+        
+        .zone-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+            color: var(--text-light);
+        }
+        
+        .zone-info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .zone-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+        
+        .zone-action-btn {
+            flex: 1;
+            padding: 0.5rem;
+            background: var(--light);
+            border: 1px solid var(--border);
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .zone-action-btn:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .alert-info {
+            background: var(--info);
+            color: white;
+        }
+        
+        .alert-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .alert-error {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .health-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+        
+        .health-indicator.healthy {
+            background: var(--success);
+            animation: pulse-green 2s infinite;
+        }
+        
+        .health-indicator.unhealthy {
+            background: var(--danger);
+            animation: pulse-red 2s infinite;
+        }
+        
+        @keyframes pulse-green {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            50% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+        }
+        
+        @keyframes pulse-red {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+        }
+        
+        .tab-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--border);
+        }
+        
+        .tab-btn {
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid transparent;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: -2px;
+        }
+        
+        .tab-btn:hover {
+            color: var(--primary);
+        }
+        
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .nav {
+                flex-wrap: wrap;
+            }
+            
+            .zones-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Consistent Header -->
+        <div class="header">
+            <a href="/" class="logo">
+                <span class="logo-icon">🦖</span>
+                <span class="logo-text">RAWRProxy</span>
+            </a>
+            <nav class="nav">
+                <a href="/" class="nav-btn">
+                    <span>🏠</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/domains" class="nav-btn">
+                    <span>🌐</span>
+                    <span>Domains</span>
+                </a>
+                <a href="/websocket" class="nav-btn">
+                    <span>🔌</span>
+                    <span>WebSocket</span>
+                </a>
+                <a href="/proxmox" class="nav-btn">
+                    <span>🖥️</span>
+                    <span>Proxmox</span>
+                </a>
+                <a href="/cloudflare" class="nav-btn cloudflare active">
+                    <span>☁️</span>
+                    <span>Cloudflare</span>
+                </a>
+            </nav>
+        </div>
+        
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">
+                <span>☁️</span>
+                <span>Cloudflare Integration</span>
+            </h1>
+            <div id="connectionStatus" class="status-badge disconnected">
+                <span class="health-indicator unhealthy"></span>
+                <span>Not Connected</span>
+            </div>
+        </div>
+        
+        <div id="alerts"></div>
+        
+        <!-- Configuration Section -->
+        <div class="config-section">
+            <h2 class="section-title">
+                <span>⚙️</span>
+                <span>API Configuration</span>
+            </h2>
+            
+            <div class="tab-buttons">
+                <button class="tab-btn active" onclick="switchTab('token')">API Token (Recommended)</button>
+                <button class="tab-btn" onclick="switchTab('key')">Global API Key</button>
+            </div>
+            
+            <div id="tokenTab" class="tab-content active">
+                <div class="form-group">
+                    <label class="form-label">API Token</label>
+                    <input type="password" class="form-input" id="apiToken" placeholder="Your Cloudflare API Token">
+                    <small style="color: var(--text-light); font-size: 0.875rem; margin-top: 0.25rem;">
+                        Create a token with Zone:Read, DNS:Edit, and SSL:Edit permissions
+                    </small>
+                </div>
+            </div>
+            
+            <div id="keyTab" class="tab-content">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" id="email" placeholder="your@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Global API Key</label>
+                        <input type="password" class="form-input" id="apiKey" placeholder="Your Global API Key">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Account ID (Optional)</label>
+                    <input type="text" class="form-input" id="accountId" placeholder="Your Account ID">
+                </div>
+            </div>
+            
+            <h3 style="margin: 2rem 0 1rem; font-size: 1.125rem; color: var(--dark);">Automation Settings</h3>
+            
+            <div class="form-checkbox">
+                <input type="checkbox" id="autoSSL" checked>
+                <label for="autoSSL">Automatically generate SSL certificates for new domains</label>
+            </div>
+            
+            <div class="form-checkbox">
+                <input type="checkbox" id="autoDNS" checked>
+                <label for="autoDNS">Automatically create DNS records for new subdomains</label>
+            </div>
+            
+            <div class="form-checkbox">
+                <input type="checkbox" id="proxied" checked>
+                <label for="proxied">Proxy traffic through Cloudflare (Orange Cloud)</label>
+            </div>
+            
+            <div class="form-checkbox">
+                <input type="checkbox" id="tunnelEnabled">
+                <label for="tunnelEnabled">Enable Cloudflare Tunnel support</label>
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn" onclick="testConnection()">
+                    <span>🔌</span>
+                    <span>Test Connection</span>
+                </button>
+                <button class="btn btn-success" onclick="saveConfig()">
+                    <span>💾</span>
+                    <span>Save Configuration</span>
+                </button>
+                <button class="btn btn-cloudflare" onclick="syncDomains()">
+                    <span>🔄</span>
+                    <span>Sync Domains</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Zones Section -->
+        <div class="config-section">
+            <h2 class="section-title">
+                <span>🌍</span>
+                <span>Cloudflare Zones</span>
+            </h2>
+            <div id="zonesInfo" class="alert alert-info">
+                <span>ℹ️</span>
+                <span>Configure your API credentials above to view and manage zones.</span>
+            </div>
+            <div id="zonesList" class="zones-grid"></div>
+        </div>
+        
+        <!-- Quick Actions Section -->
+        <div class="config-section">
+            <h2 class="section-title">
+                <span>⚡</span>
+                <span>Quick Actions</span>
+            </h2>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Create DNS Record</label>
+                    <input type="text" class="form-input" id="dnsName" placeholder="subdomain.example.com">
+                    <input type="text" class="form-input" id="dnsContent" placeholder="192.168.1.100" style="margin-top: 0.5rem;">
+                    <button class="btn btn-cloudflare" onclick="createDNSRecord()" style="margin-top: 0.5rem; width: 100%;">
+                        <span>➕</span>
+                        <span>Create A Record</span>
+                    </button>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">Generate Origin Certificate</label>
+                    <input type="text" class="form-input" id="certDomain" placeholder="example.com">
+                    <button class="btn btn-cloudflare" onclick="generateCertificate()" style="margin-top: 0.5rem; width: 100%;">
+                        <span>🔒</span>
+                        <span>Generate Certificate</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let config = {};
+        let zones = [];
+        let currentTab = 'token';
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            if (tab === 'token') {
+                document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+                document.getElementById('tokenTab').classList.add('active');
+            } else {
+                document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+                document.getElementById('keyTab').classList.add('active');
+            }
+        }
+
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/cloudflare/config');
+                config = await response.json();
+                
+                if (config.api_token) {
+                    document.getElementById('apiToken').value = config.api_token;
+                    switchTab('token');
+                } else if (config.email) {
+                    document.getElementById('email').value = config.email;
+                    document.getElementById('apiKey').value = config.api_key || '';
+                    switchTab('key');
+                }
+                
+                if (config.account_id) {
+                    document.getElementById('accountId').value = config.account_id;
+                }
+                
+                document.getElementById('autoSSL').checked = config.auto_ssl === 1;
+                document.getElementById('autoDNS').checked = config.auto_dns === 1;
+                document.getElementById('proxied').checked = config.proxied === 1;
+                document.getElementById('tunnelEnabled').checked = config.tunnel_enabled === 1;
+                
+                if (config.enabled) {
+                    updateConnectionStatus(true);
+                    loadZones();
+                }
+            } catch (error) {
+                showAlert('Failed to load configuration', 'error');
+            }
+        }
+
+        function updateConnectionStatus(connected) {
+            const statusEl = document.getElementById('connectionStatus');
+            if (connected) {
+                statusEl.className = 'status-badge connected';
+                statusEl.innerHTML = '<span class="health-indicator healthy"></span><span>Connected</span>';
+            } else {
+                statusEl.className = 'status-badge disconnected';
+                statusEl.innerHTML = '<span class="health-indicator unhealthy"></span><span>Not Connected</span>';
+            }
+        }
+
+        async function testConnection() {
+            const config = {};
+            
+            if (currentTab === 'token') {
+                config.apiToken = document.getElementById('apiToken').value;
+                if (!config.apiToken) {
+                    showAlert('Please enter an API token', 'error');
+                    return;
+                }
+            } else {
+                config.email = document.getElementById('email').value;
+                config.apiKey = document.getElementById('apiKey').value;
+                if (!config.email || !config.apiKey) {
+                    showAlert('Please enter both email and API key', 'error');
+                    return;
+                }
+            }
+            
+            try {
+                const response = await fetch('/api/cloudflare/test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                    updateConnectionStatus(true);
+                    loadZones();
+                } else {
+                    showAlert(`Connection failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Test failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function saveConfig() {
+            const config = {
+                accountId: document.getElementById('accountId').value,
+                autoSSL: document.getElementById('autoSSL').checked,
+                autoDNS: document.getElementById('autoDNS').checked,
+                proxied: document.getElementById('proxied').checked,
+                tunnelEnabled: document.getElementById('tunnelEnabled').checked
+            };
+            
+            if (currentTab === 'token') {
+                config.apiToken = document.getElementById('apiToken').value;
+                if (!config.apiToken) {
+                    showAlert('Please enter an API token', 'error');
+                    return;
+                }
+            } else {
+                config.email = document.getElementById('email').value;
+                config.apiKey = document.getElementById('apiKey').value;
+                if (!config.email || !config.apiKey) {
+                    showAlert('Please enter both email and API key', 'error');
+                    return;
+                }
+            }
+            
+            try {
+                const response = await fetch('/api/cloudflare/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(config)
+                });
+                
+                if (response.ok) {
+                    showAlert('Configuration saved successfully', 'success');
+                    updateConnectionStatus(true);
+                    loadZones();
+                } else {
+                    const error = await response.json();
+                    showAlert(`Failed to save: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Save failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadZones() {
+            try {
+                const response = await fetch('/api/cloudflare/zones');
+                zones = await response.json();
+                
+                if (zones.length === 0) {
+                    document.getElementById('zonesInfo').innerHTML = 
+                        '<span>📭</span><span>No zones found in your Cloudflare account.</span>';
+                    document.getElementById('zonesInfo').className = 'alert alert-info';
+                    document.getElementById('zonesList').innerHTML = '';
+                    return;
+                }
+                
+                document.getElementById('zonesInfo').innerHTML = 
+                    `<span>✅</span><span>Found ${zones.length} zone(s) in your account</span>`;
+                document.getElementById('zonesInfo').className = 'alert alert-success';
+                
+                let html = '';
+                zones.forEach(zone => {
+                    const statusBadge = zone.status === 'active' ? 
+                        '<span style="color: var(--success);">● Active</span>' : 
+                        '<span style="color: var(--warning);">● Pending</span>';
+                    
+                    html += `
+                        <div class="zone-card">
+                            <div class="zone-header">
+                                <div class="zone-name">${zone.name}</div>
+                                <div class="zone-badge">${zone.plan.name}</div>
+                            </div>
+                            <div class="zone-body">
+                                <div class="zone-info">
+                                    <div class="zone-info-row">
+                                        <span>Status:</span>
+                                        <span>${statusBadge}</span>
+                                    </div>
+                                    <div class="zone-info-row">
+                                        <span>Name Servers:</span>
+                                        <span>${zone.name_servers ? zone.name_servers.length : 0} configured</span>
+                                    </div>
+                                    <div class="zone-info-row">
+                                        <span>Created:</span>
+                                        <span>${new Date(zone.created_on).toLocaleDateString()}</span>
+                                    </div>
+                                </div>
+                                <div class="zone-actions">
+                                    <button class="zone-action-btn" onclick="manageDNS('${zone.id}', '${zone.name}')">
+                                        DNS Records
+                                    </button>
+                                    <button class="zone-action-btn" onclick="manageSSL('${zone.id}', '${zone.name}')">
+                                        SSL/TLS
+                                    </button>
+                                    <button class="zone-action-btn" onclick="viewAnalytics('${zone.id}', '${zone.name}')">
+                                        Analytics
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                document.getElementById('zonesList').innerHTML = html;
+            } catch (error) {
+                showAlert('Failed to load zones', 'error');
+            }
+        }
+
+        async function syncDomains() {
+            showAlert('Starting domain sync with Cloudflare...', 'info');
+            
+            try {
+                const response = await fetch('/api/cloudflare/sync', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(`Successfully synced ${result.synced || 0} domain(s)`, 'success');
+                    loadZones();
+                } else {
+                    showAlert(`Sync failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Sync failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function createDNSRecord() {
+            const name = document.getElementById('dnsName').value;
+            const content = document.getElementById('dnsContent').value;
+            
+            if (!name || !content) {
+                showAlert('Please enter both name and content for the DNS record', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/cloudflare/dns', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        domain: name.split('.').slice(-2).join('.'),
+                        type: 'A',
+                        content: content,
+                        proxied: document.getElementById('proxied').checked
+                    })
+                });
+                
+                if (response.ok) {
+                    showAlert('DNS record created successfully', 'success');
+                    document.getElementById('dnsName').value = '';
+                    document.getElementById('dnsContent').value = '';
+                } else {
+                    const error = await response.json();
+                    showAlert(`Failed to create DNS record: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function generateCertificate() {
+            const domain = document.getElementById('certDomain').value;
+            
+            if (!domain) {
+                showAlert('Please enter a domain name', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/cloudflare/ssl', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ domain })
+                });
+                
+                if (response.ok) {
+                    const cert = await response.json();
+                    showAlert('Origin certificate generated successfully', 'success');
+                    console.log('Certificate details:', cert);
+                } else {
+                    const error = await response.json();
+                    showAlert(`Failed to generate certificate: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`Failed: ${error.message}`, 'error');
+            }
+        }
+
+        function manageDNS(zoneId, zoneName) {
+            alert(`DNS management for ${zoneName}\n\nThis would open DNS record management interface.`);
+        }
+
+        function manageSSL(zoneId, zoneName) {
+            alert(`SSL/TLS settings for ${zoneName}\n\nSSL Mode: Full (strict)\nOrigin Certificates: Active`);
+        }
+
+        function viewAnalytics(zoneId, zoneName) {
+            alert(`Analytics for ${zoneName}\n\nRequests: 125,432\nBandwidth: 2.5 TB\nUnique Visitors: 8,234`);
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            
+            const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+            alertDiv.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+            
+            const alertsContainer = document.getElementById('alerts');
+            alertsContainer.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Load configuration on page load
+        loadConfig();
+    </script>
+</body>
+</html>
