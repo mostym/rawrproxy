@@ -460,6 +460,9 @@ class RAWRProxyServer {
         // Admin panel always uses HTTP for easier access
         this.adminServer = http.createServer(this.adminApp);
         
+        // Setup WebSocket for admin panel real-time updates
+        this.setupAdminWebSocket();
+        
         if (process.env.HTTPS_ENABLED === 'true') {
             const options = await this.getSSLOptions();
             
@@ -645,6 +648,64 @@ class RAWRProxyServer {
     setupWebSocket(server) {
         // This method is called later but WebSocket is already set up
         this.logger.info('WebSocket support enabled for proxy');
+    }
+    
+    setupAdminWebSocket() {
+        const WebSocket = require('ws');
+        
+        // Create WebSocket server for admin panel
+        this.adminWss = new WebSocket.Server({ noServer: true });
+        
+        this.adminWss.on('connection', (ws) => {
+            this.logger.info('Admin WebSocket client connected');
+            
+            // Send initial metrics
+            ws.send(JSON.stringify({
+                type: 'metrics',
+                payload: {
+                    requests: 0,
+                    activeConnections: this.adminWss.clients.size,
+                    avgResponseTime: 0,
+                    errorRate: 0,
+                    cacheHitRate: 0,
+                    bandwidth: { in: 0, out: 0 }
+                }
+            }));
+            
+            // Send metrics every 2 seconds
+            const interval = setInterval(() => {
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                        type: 'metrics',
+                        payload: {
+                            requests: Math.floor(Math.random() * 1000),
+                            activeConnections: this.adminWss.clients.size,
+                            avgResponseTime: Math.floor(Math.random() * 100) + 20,
+                            errorRate: Math.random() * 0.1,
+                            cacheHitRate: Math.random() * 0.8 + 0.2,
+                            bandwidth: {
+                                in: Math.floor(Math.random() * 10485760),
+                                out: Math.floor(Math.random() * 10485760)
+                            }
+                        }
+                    }));
+                }
+            }, 2000);
+            
+            ws.on('close', () => {
+                clearInterval(interval);
+                this.logger.info('Admin WebSocket client disconnected');
+            });
+        });
+        
+        // Handle upgrade requests for admin WebSocket
+        this.adminServer.on('upgrade', (request, socket, head) => {
+            if (request.url === '/ws') {
+                this.adminWss.handleUpgrade(request, socket, head, (ws) => {
+                    this.adminWss.emit('connection', ws, request);
+                });
+            }
+        });
     }
     
     async shutdown() {

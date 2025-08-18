@@ -23,7 +23,15 @@ class AdminPanel {
     setupMiddleware() {
         this.app.use(bodyParser.json());
         this.app.use(bodyParser.urlencoded({ extended: true }));
-        this.app.use(express.static(path.join(__dirname, '../public')));
+        
+        // Serve React frontend in production
+        if (process.env.NODE_ENV === 'production') {
+            this.app.use(express.static(path.join(__dirname, '../../frontend/dist')));
+        } else {
+            // In development, serve old admin panel
+            this.app.use(express.static(path.join(__dirname, '../public')));
+        }
+        
         this.app.set('view engine', 'ejs');
         this.app.set('views', path.join(__dirname, '../views'));
     }
