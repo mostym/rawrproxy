@@ -21,7 +21,11 @@ function App() {
 
   useEffect(() => {
     // Connect to WebSocket for real-time updates
-    connect('ws://localhost:8081/ws', {
+    const wsUrl = window.location.protocol === 'https:' 
+      ? `wss://${window.location.host}/ws`
+      : `ws://${window.location.host}/ws`;
+      
+    connect(wsUrl, {
       onMessage: (data) => {
         if (data.type === 'metrics') {
           setMetrics(data.payload);

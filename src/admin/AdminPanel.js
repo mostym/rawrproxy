@@ -41,6 +41,7 @@ class AdminPanel {
         this.app.get('/domains', this.renderDomainsPage.bind(this));
         this.app.get('/websocket', this.renderWebSocketMonitor.bind(this));
         this.app.get('/api/stats', this.getStats.bind(this));
+        this.app.get('/api/dashboard', this.getDashboard.bind(this));
         this.app.get('/api/users', this.getUsers.bind(this));
         this.app.post('/api/users', this.createUser.bind(this));
         this.app.delete('/api/users/:id', this.deleteUser.bind(this));
@@ -172,6 +173,28 @@ class AdminPanel {
             totalRequests: totalRequests,
             dailyMetrics: metrics
         };
+    }
+
+    async getDashboard(req, res) {
+        try {
+            // Return simplified dashboard data
+            const domains = await this.db.all('SELECT COUNT(*) as count FROM domains');
+            const backends = await this.db.all('SELECT COUNT(*) as count FROM backends');
+            const activeBackends = await this.db.all('SELECT COUNT(*) as count FROM backends WHERE active = 1');
+            
+            res.json({
+                stats: {
+                    domains: domains[0].count,
+                    backends: backends[0].count,
+                    activeBackends: activeBackends[0].count,
+                    uptime: process.uptime(),
+                    memory: process.memoryUsage(),
+                },
+                timestamp: new Date().toISOString()
+            });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
     }
 
     async getUsers(req, res) {
@@ -317,7 +340,19 @@ class AdminPanel {
     async getDomains(req, res) {
         try {
             const domains = await this.db.getDomains();
-            res.json(domains);
+            // Add UI-expected fields if missing
+            const enhancedDomains = domains.map(domain => ({
+                ...domain,
+                target: domain.target || 'http://localhost:3000',
+                ssl_enabled: domain.ssl_enabled || false,
+                force_ssl: domain.force_ssl || false,
+                cache_enabled: domain.cache_enabled || false,
+                compression_enabled: domain.compression_enabled || false,
+                waf_enabled: domain.waf_enabled || false,
+                rate_limit: domain.rate_limit || 100,
+                active: domain.active !== 0
+            }));
+            res.json(enhancedDomains);
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
