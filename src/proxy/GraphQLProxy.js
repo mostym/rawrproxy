@@ -4,8 +4,7 @@ const { stitchSchemas } = require('@graphql-tools/stitch');
 const { introspectSchema, wrapSchema } = require('@graphql-tools/wrap');
 const { GraphQLSchema, print } = require('graphql');
 const { PubSub } = require('graphql-subscriptions');
-const { createHttpLink } = require('apollo-link-http');
-const fetch = require('node-fetch');
+const fetch = require('axios');
 const Logger = require('../utils/Logger');
 
 class GraphQLProxy {
@@ -104,18 +103,19 @@ class GraphQLProxy {
             try {
                 const query = print(document);
                 
-                const response = await fetch(service.url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...service.headers,
-                        ...(context?.headers || {})
-                    },
-                    body: JSON.stringify({ query, variables }),
-                    timeout: service.timeout
-                });
+                const response = await fetch.post(service.url, 
+                    { query, variables },
+                    {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            ...service.headers,
+                            ...(context?.headers || {})
+                        },
+                        timeout: service.timeout
+                    }
+                );
                 
-                const result = await response.json();
+                const result = response.data;
                 
                 if (result.errors) {
                     throw new Error(JSON.stringify(result.errors));
@@ -534,15 +534,14 @@ class GraphQLProxy {
         if (!service) return { healthy: false, error: 'Service not found' };
         
         try {
-            const response = await fetch(service.url + service.healthCheck, {
-                method: 'GET',
+            const response = await fetch.get(service.url + service.healthCheck, {
                 timeout: 5000
             });
             
             return {
-                healthy: response.ok,
+                healthy: response.status === 200,
                 status: response.status,
-                latency: response.headers.get('x-response-time')
+                latency: response.headers['x-response-time']
             };
         } catch (error) {
             return {

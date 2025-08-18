@@ -470,6 +470,27 @@ class GrpcProxy {
         };
     }
 
+    // Express middleware
+    middleware() {
+        return async (req, res, next) => {
+            // Check if this is a gRPC request
+            if (req.headers['content-type'] !== 'application/grpc') {
+                return next();
+            }
+            
+            try {
+                // Handle gRPC request
+                await this.handleRequest(req, res);
+            } catch (error) {
+                this.logger.error(`gRPC middleware error: ${error.message}`);
+                res.status(500).json({
+                    error: 'gRPC proxy error',
+                    message: error.message
+                });
+            }
+        };
+    }
+    
     // Clean up resources
     async shutdown() {
         this.logger.info('Shutting down gRPC proxy');

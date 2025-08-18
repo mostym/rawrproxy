@@ -490,6 +490,33 @@ class TrafficSplitter {
         }
         return deleted;
     }
+    
+    // Load experiments from database
+    async loadExperiments() {
+        if (!this.db) {
+            this.logger.info('No database configured for traffic splitter');
+            return;
+        }
+        
+        try {
+            const experiments = await this.db.all(
+                'SELECT * FROM traffic_experiments WHERE active = 1'
+            );
+            
+            for (const exp of experiments) {
+                this.experiments.set(exp.id, {
+                    ...exp,
+                    config: JSON.parse(exp.config || '{}'),
+                    results: JSON.parse(exp.results || '{}')
+                });
+            }
+            
+            this.logger.info(`Loaded ${experiments.length} traffic experiments`);
+        } catch (error) {
+            // Table might not exist yet
+            this.logger.debug(`Could not load experiments: ${error.message}`);
+        }
+    }
 }
 
 module.exports = TrafficSplitter;

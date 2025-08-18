@@ -8,7 +8,7 @@ const {
     BasicTracerProvider, 
     BatchSpanProcessor, 
     ConsoleSpanExporter 
-} = require('@opentelemetry/tracing');
+} = require('@opentelemetry/sdk-trace-base');
 const { 
     MeterProvider, 
     PeriodicExportingMetricReader,
